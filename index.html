@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FinTrack">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>FinTrack AUD</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0a0a0a;
+    --surface: #141414;
+    --surface2: #1c1c1c;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #f0f0f0;
+    --text2: #888;
+    --text3: #555;
+    --green: #00d68f;
+    --green-dim: rgba(0,214,143,0.12);
+    --red: #ff5252;
+    --red-dim: rgba(255,82,82,0.12);
+    --amber: #ffb347;
+    --amber-dim: rgba(255,179,71,0.12);
+    --blue: #4d9eff;
+    --blue-dim: rgba(77,158,255,0.12);
+    --purple: #a78bfa;
+    --purple-dim: rgba(167,139,250,0.12);
+    --safe-top: env(safe-area-inset-top, 44px);
+    --safe-bottom: env(safe-area-inset-bottom, 20px);
+    --nav-h: 64px;
+    --header-h: 56px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    overflow: hidden;
+  }
+
+  #app {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    position: relative; overflow: hidden;
+  }
+
+  /* HEADER */
+  .header {
+    flex-shrink: 0;
+    padding: calc(var(--safe-top) + 12px) 20px 12px;
+    background: var(--bg);
+    border-bottom: 0.5px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    position: relative; z-index: 10;
+  }
+  .header-title { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+  .header-sub { font-size: 12px; color: var(--text2); margin-top: 1px; }
+  .header-badge {
+    background: var(--green-dim); color: var(--green);
+    font-size: 11px; font-weight: 500; padding: 4px 10px;
+    border-radius: 20px; border: 0.5px solid rgba(0,214,143,0.2);
+  }
+
+  /* SCROLL AREA */
+  .scroll-area {
+    flex: 1; overflow-y: auto; overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding: 16px 16px calc(var(--nav-h) + var(--safe-bottom) + 20px);
+  }
+
+  /* NAV */
+  .nav {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: calc(var(--nav-h) + var(--safe-bottom));
+    background: rgba(20,20,20,0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 0.5px solid var(--border);
+    display: flex; padding-bottom: var(--safe-bottom);
+    z-index: 100;
+  }
+  .nav-item {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 4px; cursor: pointer; padding: 8px 4px;
+    transition: opacity .15s;
+  }
+  .nav-item:active { opacity: .6; }
+  .nav-icon { font-size: 20px; transition: transform .2s; }
+  .nav-label { font-size: 10px; color: var(--text3); font-weight: 500; letter-spacing: .3px; text-transform: uppercase; }
+  .nav-item.active .nav-label { color: var(--green); }
+  .nav-item.active .nav-icon { transform: scale(1.1); }
+
+  /* PAGES */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .card-title {
+    font-size: 11px; font-weight: 500;
+    color: var(--text2); text-transform: uppercase;
+    letter-spacing: .8px; margin-bottom: 12px;
+  }
+
+  /* METRIC ROW */
+  .metric-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .metric-card {
+    background: var(--surface2);
+    border-radius: 12px; padding: 14px 12px;
+    border: 0.5px solid var(--border);
+  }
+  .metric-label { font-size: 11px; color: var(--text2); margin-bottom: 4px; }
+  .metric-value { font-size: 20px; font-weight: 600; font-family: 'DM Mono', monospace; letter-spacing: -0.5px; }
+  .metric-sub { font-size: 10px; color: var(--text3); margin-top: 2px; }
+
+  /* COLORS */
+  .c-green { color: var(--green); }
+  .c-red { color: var(--red); }
+  .c-amber { color: var(--amber); }
+  .c-blue { color: var(--blue); }
+  .c-purple { color: var(--purple); }
+
+  /* ALLOCATION BAR */
+  .alloc-bar {
+    display: flex; height: 8px; border-radius: 4px;
+    overflow: hidden; gap: 2px; margin: 8px 0 12px;
+  }
+  .alloc-seg { transition: flex .4s ease; }
+
+  .legend-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+  .legend-val { color: var(--text2); }
+
+  /* PROGRESS BAR */
+  .progress { height: 4px; background: var(--border2); border-radius: 2px; margin: 6px 0 2px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 2px; transition: width .4s ease; }
+
+  /* LIST ITEMS */
+  .list-item {
+    padding: 14px 0;
+    border-bottom: 0.5px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .list-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .list-item:first-child { padding-top: 0; }
+
+  .item-icon {
+    width: 38px; height: 38px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .item-body { flex: 1; min-width: 0; }
+  .item-name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item-sub { font-size: 12px; color: var(--text2); margin-top: 1px; }
+  .item-right { text-align: right; flex-shrink: 0; }
+  .item-amount { font-size: 14px; font-weight: 600; font-family: 'DM Mono', monospace; }
+  .item-detail { font-size: 11px; color: var(--text2); margin-top: 1px; }
+
+  /* BADGE */
+  .badge {
+    display: inline-block; font-size: 10px; font-weight: 500;
+    padding: 3px 8px; border-radius: 20px; letter-spacing: .2px;
+  }
+  .badge-green { background: var(--green-dim); color: var(--green); }
+  .badge-red { background: var(--red-dim); color: var(--red); }
+  .badge-amber { background: var(--amber-dim); color: var(--amber); }
+  .badge-blue { background: var(--blue-dim); color: var(--blue); }
+  .badge-purple { background: var(--purple-dim); color: var(--purple); }
+
+  /* FAB */
+  .fab {
+    position: fixed;
+    right: 20px;
+    bottom: calc(var(--nav-h) + var(--safe-bottom) + 16px);
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    background: var(--green);
+    color: #000;
+    font-size: 24px; font-weight: 300;
+    border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 20px rgba(0,214,143,0.35);
+    z-index: 50;
+    transition: transform .15s, opacity .15s;
+  }
+  .fab:active { transform: scale(.92); opacity: .85; }
+  .fab.hidden { display: none; }
+
+  /* SECTION DIVIDER */
+  .section-label {
+    font-size: 11px; font-weight: 500;
+    color: var(--text3); text-transform: uppercase;
+    letter-spacing: .8px; margin: 20px 0 8px;
+  }
+
+  /* FORMS */
+  .form-group { margin-bottom: 14px; }
+  .form-label { font-size: 12px; color: var(--text2); margin-bottom: 6px; display: block; }
+  .form-input, .form-select {
+    width: 100%; padding: 12px 14px;
+    background: var(--surface2);
+    border: 0.5px solid var(--border2);
+    border-radius: 10px;
+    color: var(--text); font-size: 15px;
+    font-family: 'DM Sans', sans-serif;
+    appearance: none; -webkit-appearance: none;
+    outline: none;
+  }
+  .form-input:focus, .form-select:focus { border-color: var(--green); }
+  .form-select { background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23888' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+
+  /* SHEET (bottom drawer) */
+  .sheet-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200; opacity: 0;
+    transition: opacity .25s;
+    pointer-events: none;
+  }
+  .sheet-overlay.open { opacity: 1; pointer-events: all; }
+  .sheet {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--surface);
+    border-radius: 20px 20px 0 0;
+    border-top: 0.5px solid var(--border2);
+    padding: 0 20px calc(var(--safe-bottom) + 20px);
+    z-index: 201;
+    transform: translateY(100%);
+    transition: transform .3s cubic-bezier(.32,.72,0,1);
+    max-height: 90vh; overflow-y: auto;
+  }
+  .sheet.open { transform: translateY(0); }
+  .sheet-handle {
+    width: 36px; height: 4px; border-radius: 2px;
+    background: var(--border2); margin: 12px auto 20px;
+  }
+  .sheet-title { font-size: 17px; font-weight: 600; margin-bottom: 20px; }
+  .sheet-actions { display: flex; gap: 10px; margin-top: 20px; }
+  .btn {
+    flex: 1; padding: 14px; border-radius: 12px;
+    font-size: 15px; font-weight: 500; cursor: pointer;
+    border: none; font-family: 'DM Sans', sans-serif;
+    transition: opacity .15s;
+  }
+  .btn:active { opacity: .7; }
+  .btn-primary { background: var(--green); color: #000; }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 0.5px solid var(--border2); }
+  .btn-danger { background: var(--red-dim); color: var(--red); border: 0.5px solid rgba(255,82,82,.2); }
+
+  /* CHARTS */
+  .chart-wrap { position: relative; width: 100%; height: 160px; margin: 4px 0; }
+
+  /* DEBT CARD */
+  .debt-card {
+    background: var(--surface2); border-radius: 12px;
+    border: 0.5px solid var(--border); padding: 14px;
+    margin-bottom: 10px; position: relative;
+  }
+  .debt-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+  .debt-name { font-size: 15px; font-weight: 500; }
+  .debt-balance { font-size: 18px; font-weight: 600; font-family: 'DM Mono', monospace; color: var(--red); }
+  .debt-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+  .debt-stat-label { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+  .debt-stat-value { font-size: 13px; font-weight: 500; margin-top: 2px; font-family: 'DM Mono', monospace; }
+
+  /* INVEST CARD */
+  .invest-card {
+    background: var(--surface2); border-radius: 12px;
+    border: 0.5px solid var(--border); padding: 14px;
+    margin-bottom: 10px;
+  }
+  .invest-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+  .invest-name { font-size: 15px; font-weight: 500; }
+  .invest-value { font-size: 18px; font-weight: 600; font-family: 'DM Mono', monospace; color: var(--green); }
+  .invest-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  /* REMINDER */
+  .reminder-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 0; border-bottom: 0.5px solid var(--border);
+  }
+  .reminder-row:last-child { border-bottom: none; }
+  .reminder-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .reminder-text { flex: 1; font-size: 13px; }
+  .reminder-date { font-size: 11px; color: var(--text2); white-space: nowrap; }
+
+  /* UPDATE ROW */
+  .update-row { display: flex; gap: 8px; margin-top: 10px; }
+  .update-input {
+    flex: 1; padding: 10px 12px;
+    background: var(--bg); border: 0.5px solid var(--border2);
+    border-radius: 8px; color: var(--text); font-size: 13px;
+    font-family: 'DM Mono', monospace;
+  }
+  .update-btn {
+    padding: 10px 14px; background: var(--green-dim);
+    color: var(--green); border: 0.5px solid rgba(0,214,143,.2);
+    border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer;
+  }
+
+  /* NET WORTH BIG */
+  .nw-hero {
+    text-align: center; padding: 8px 0 16px;
+    border-bottom: 0.5px solid var(--border); margin-bottom: 16px;
+  }
+  .nw-label { font-size: 12px; color: var(--text2); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 6px; }
+  .nw-value { font-size: 38px; font-weight: 600; font-family: 'DM Mono', monospace; letter-spacing: -1px; }
+  .nw-change { font-size: 13px; color: var(--text2); margin-top: 4px; }
+
+  /* PAYCYCLE */
+  .pay-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .pay-cell {
+    background: var(--surface2); border-radius: 10px;
+    padding: 12px; border: 0.5px solid var(--border);
+  }
+  .pay-cell-label { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
+  .pay-cell-value { font-size: 16px; font-weight: 600; font-family: 'DM Mono', monospace; }
+
+  /* EXPENSE CATEGORIES */
+  .cat-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 0; border-bottom: 0.5px solid var(--border);
+  }
+  .cat-row:last-child { border-bottom: none; }
+  .cat-bar-wrap { flex: 1; }
+  .cat-name { font-size: 13px; margin-bottom: 3px; }
+  .cat-mini-bar { height: 3px; border-radius: 2px; margin-top: 4px; }
+  .cat-pct { font-size: 11px; color: var(--text2); min-width: 30px; text-align: right; }
+  .cat-amt { font-size: 13px; font-weight: 500; font-family: 'DM Mono', monospace; min-width: 70px; text-align: right; }
+
+  /* EMPTY STATE */
+  .empty { text-align: center; padding: 32px 16px; color: var(--text3); font-size: 13px; }
+  .empty-icon { font-size: 32px; margin-bottom: 8px; opacity: .5; }
+
+  /* DELETE BTN */
+  .delete-btn {
+    background: none; border: none; cursor: pointer;
+    color: var(--text3); font-size: 18px; padding: 4px;
+    transition: color .15s;
+  }
+  .delete-btn:active { color: var(--red); }
+
+  /* SWIPE TO DELETE HINT */
+  @media (max-width: 480px) {
+    .scroll-area { padding-left: 12px; padding-right: 12px; }
+    .header { padding-left: 16px; padding-right: 16px; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div>
+      <div class="header-title" id="page-title">Dashboard</div>
+      <div class="header-sub" id="page-sub">Loading...</div>
+    </div>
+    <div class="header-badge" id="pay-badge">—</div>
+  </div>
+
+  <!-- SCROLL AREA -->
+  <div class="scroll-area" id="scroll-area">
+
+    <!-- DASHBOARD PAGE -->
+    <div id="page-dashboard" class="page active">
+      <div class="nw-hero">
+        <div class="nw-label">Net worth</div>
+        <div class="nw-value" id="nw-value">$0</div>
+        <div class="nw-change" id="nw-sub">Investments minus debts</div>
+      </div>
+
+      <div class="metric-row">
+        <div class="metric-card">
+          <div class="metric-label">Fortnightly pay</div>
+          <div class="metric-value c-green" id="m-income">$0</div>
+          <div class="metric-sub">AUD take-home</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Total debt</div>
+          <div class="metric-value c-red" id="m-debt">$0</div>
+          <div class="metric-sub" id="m-debt-sub">0 accounts</div>
+        </div>
+      </div>
+      <div class="metric-row">
+        <div class="metric-card">
+          <div class="metric-label">Portfolio</div>
+          <div class="metric-value c-green" id="m-invest">$0</div>
+          <div class="metric-sub" id="m-invest-sub">0 investments</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">This fortnight</div>
+          <div class="metric-value c-amber" id="m-spent">$0</div>
+          <div class="metric-sub">expenses logged</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Pay allocation</div>
+        <div class="alloc-bar" id="dash-alloc-bar"></div>
+        <div class="legend-grid" id="dash-alloc-legend"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Debt progress</div>
+        <div id="dash-debt-snap"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Net worth (12 months)</div>
+        <div class="chart-wrap"><canvas id="nw-chart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- PAY CYCLE PAGE -->
+    <div id="page-paycycle" class="page">
+      <div class="card">
+        <div class="card-title">Income</div>
+        <div class="form-group">
+          <label class="form-label">Fortnightly take-home (AUD)</label>
+          <input class="form-input" type="number" id="inp-income" placeholder="5000" inputmode="decimal">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Next pay date</label>
+          <input class="form-input" type="date" id="inp-payday">
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Allocations (% of income)</div>
+        <div id="alloc-form-rows"></div>
+        <div id="alloc-total-msg" style="margin-top:10px;font-size:13px;text-align:center;padding:8px;border-radius:8px"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">This fortnight</div>
+        <div class="pay-grid" id="pay-breakdown"></div>
+      </div>
+    </div>
+
+    <!-- DEBTS PAGE -->
+    <div id="page-debts" class="page">
+      <div id="debt-list-container"></div>
+    </div>
+
+    <!-- INVESTMENTS PAGE -->
+    <div id="page-investments" class="page">
+      <div id="invest-list-container"></div>
+      <div class="card">
+        <div class="card-title">Portfolio growth (24 months)</div>
+        <div class="chart-wrap"><canvas id="port-chart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- EXPENSES PAGE -->
+    <div id="page-expenses" class="page">
+      <div class="card">
+        <div class="card-title">This fortnight by category</div>
+        <div id="expense-cats"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Recent transactions</div>
+        <div id="expense-list"></div>
+      </div>
+    </div>
+
+    <!-- REMINDERS PAGE -->
+    <div id="page-reminders" class="page">
+      <div class="card">
+        <div class="card-title">Pay day actions</div>
+        <div id="reminders-payday"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Upcoming this fortnight</div>
+        <div id="reminders-upcoming"></div>
+      </div>
+    </div>
+
+  </div><!-- end scroll-area -->
+
+  <!-- FAB -->
+  <button class="fab hidden" id="fab" onclick="openFab()">+</button>
+
+  <!-- BOTTOM NAV -->
+  <div class="nav" id="bottom-nav">
+    <div class="nav-item active" onclick="navTo('dashboard',this)">
+      <span class="nav-icon">◈</span>
+      <span class="nav-label">Home</span>
+    </div>
+    <div class="nav-item" onclick="navTo('paycycle',this)">
+      <span class="nav-icon">⊙</span>
+      <span class="nav-label">Pay</span>
+    </div>
+    <div class="nav-item" onclick="navTo('debts',this)">
+      <span class="nav-icon">⊘</span>
+      <span class="nav-label">Debts</span>
+    </div>
+    <div class="nav-item" onclick="navTo('investments',this)">
+      <span class="nav-icon">◎</span>
+      <span class="nav-label">Invest</span>
+    </div>
+    <div class="nav-item" onclick="navTo('expenses',this)">
+      <span class="nav-icon">≋</span>
+      <span class="nav-label">Expenses</span>
+    </div>
+    <div class="nav-item" onclick="navTo('reminders',this)">
+      <span class="nav-icon">◷</span>
+      <span class="nav-label">Due</span>
+    </div>
+  </div>
+
+  <!-- SHEET OVERLAY -->
+  <div class="sheet-overlay" id="sheet-overlay" onclick="closeSheet()"></div>
+
+  <!-- DEBT SHEET -->
+  <div class="sheet" id="sheet-debt">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Add debt</div>
+    <div class="form-group"><label class="form-label">Name</label><input class="form-input" id="d-name" placeholder="ANZ Credit Card"></div>
+    <div class="form-group"><label class="form-label">Type</label>
+      <select class="form-select" id="d-type">
+        <option value="credit">Credit card</option>
+        <option value="personal">Personal loan</option>
+        <option value="car">Car loan</option>
+        <option value="student">Student loan</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Current balance ($)</label><input class="form-input" id="d-balance" type="number" placeholder="8500" inputmode="decimal"></div>
+    <div class="form-group"><label class="form-label">Interest rate (% p.a.)</label><input class="form-input" id="d-rate" type="number" placeholder="19.99" inputmode="decimal"></div>
+    <div class="form-group"><label class="form-label">Min. fortnightly payment ($)</label><input class="form-input" id="d-min" type="number" placeholder="200" inputmode="decimal"></div>
+    <div class="form-group"><label class="form-label">Extra payment per fortnight ($)</label><input class="form-input" id="d-extra" type="number" placeholder="0" inputmode="decimal"></div>
+    <div class="sheet-actions">
+      <button class="btn btn-secondary" onclick="closeSheet()">Cancel</button>
+      <button class="btn btn-primary" onclick="addDebt()">Add</button>
+    </div>
+  </div>
+
+  <!-- INVEST SHEET -->
+  <div class="sheet" id="sheet-invest">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Add investment</div>
+    <div class="form-group"><label class="form-label">Name</label><input class="form-input" id="i-name" placeholder="VDHG ETF"></div>
+    <div class="form-group"><label class="form-label">Type</label>
+      <select class="form-select" id="i-type">
+        <option value="etf">ETF / Shares</option>
+        <option value="super">Superannuation</option>
+        <option value="crypto">Crypto</option>
+        <option value="savings">High-interest savings</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Fortnightly contribution ($)</label><input class="form-input" id="i-amount" type="number" placeholder="300" inputmode="decimal"></div>
+    <div class="form-group"><label class="form-label">Current portfolio value ($)</label><input class="form-input" id="i-value" type="number" placeholder="12000" inputmode="decimal"></div>
+    <div class="form-group"><label class="form-label">Expected annual return (%)</label><input class="form-input" id="i-return" type="number" placeholder="8" inputmode="decimal"></div>
+    <div class="form-group"><label class="form-label">Auto-invest on pay day?</label>
+      <select class="form-select" id="i-auto">
+        <option value="yes">Yes — same day as pay</option>
+        <option value="no">No — manual</option>
+      </select>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-secondary" onclick="closeSheet()">Cancel</button>
+      <button class="btn btn-primary" onclick="addInvest()">Add</button>
+    </div>
+  </div>
+
+  <!-- EXPENSE SHEET -->
+  <div class="sheet" id="sheet-expense">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Log expense</div>
+    <div class="form-group"><label class="form-label">Description</label><input class="form-input" id="e-desc" placeholder="Woolworths groceries"></div>
+    <div class="form-group"><label class="form-label">Amount ($)</label><input class="form-input" id="e-amount" type="number" placeholder="85" inputmode="decimal"></div>
+    <div class="form-group"><label class="form-label">Category</label>
+      <select class="form-select" id="e-cat">
+        <option>Groceries</option><option>Rent / mortgage</option>
+        <option>Utilities</option><option>Transport</option>
+        <option>Eating out</option><option>Entertainment</option>
+        <option>Health</option><option>Clothing</option>
+        <option>Subscriptions</option><option>Other</option>
+      </select>
+    </div>
+    <div class="form-group" style="margin-bottom:0"><label class="form-label">Date</label><input class="form-input" id="e-date" type="date"></div>
+    <div class="sheet-actions">
+      <button class="btn btn-secondary" onclick="closeSheet()">Cancel</button>
+      <button class="btn btn-primary" onclick="addExpense()">Log</button>
+    </div>
+  </div>
+
+</div><!-- end app -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const ALLOC_KEYS = ['needs','debt','invest','save','spend'];
+const ALLOC_LABELS = ['Needs','Debt','Invest','Savings','Spending'];
+const ALLOC_COLORS = ['#4d9eff','#ff5252','#00d68f','#ffb347','#a78bfa'];
+const CAT_COLORS = ['#4d9eff','#00d68f','#ff5252','#a78bfa','#ffb347','#00bcd4','#ff7043','#66bb6a','#ef5350','#888'];
+
+function fmtAUD(n){return'$'+Math.round(n).toLocaleString('en-AU');}
+function today(){return new Date().toISOString().split('T')[0];}
+
+function getData(){
+  try{const d=JSON.parse(localStorage.getItem('fintrack_v2'));return d||defaultData();}
+  catch(e){return defaultData();}
+}
+function defaultData(){
+  return{income:0,nextPay:today(),alloc:{needs:50,debt:20,invest:15,save:10,spend:5},debts:[],investments:[],expenses:[]};
+}
+function saveData(d){localStorage.setItem('fintrack_v2',JSON.stringify(d));}
+
+let currentPage='dashboard';
+let nwChart=null,portChart=null;
+let currentSheet=null;
+
+// NAV
+function navTo(page, el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  el.classList.add('active');
+  currentPage=page;
+  updateHeader(page);
+  document.getElementById('scroll-area').scrollTop=0;
+  const fab=document.getElementById('fab');
+  fab.className='fab'+((['debts','investments','expenses'].includes(page))?'':' hidden');
+  if(page==='paycycle') renderPaycycle();
+  if(page==='debts') renderDebts();
+  if(page==='investments') renderInvestments();
+  if(page==='expenses') renderExpenses();
+  if(page==='reminders') renderReminders();
+  if(page==='dashboard') renderDashboard();
+}
+
+function updateHeader(page){
+  const titles={dashboard:'Dashboard',paycycle:'Pay cycle',debts:'Debts',investments:'Investments',expenses:'Expenses',reminders:'Due dates'};
+  document.getElementById('page-title').textContent=titles[page]||page;
+  const d=getData();
+  const np=d.nextPay?new Date(d.nextPay):null;
+  const days=np?Math.ceil((np-new Date())/(86400000)):null;
+  if(days!==null){
+    const badge=document.getElementById('pay-badge');
+    badge.textContent=days<=0?'Pay day!':days===1?'1 day':''+days+' days';
+    badge.style.background=days<=0?'rgba(0,214,143,.2)':'rgba(77,158,255,.12)';
+    badge.style.color=days<=0?'var(--green)':'var(--blue)';
+    badge.style.borderColor=days<=0?'rgba(0,214,143,.2)':'rgba(77,158,255,.2)';
+  }
+  const sub=document.getElementById('page-sub');
+  if(page==='dashboard'){const d2=getData();sub.textContent=d2.nextPay?'Pay '+new Date(d2.nextPay).toLocaleDateString('en-AU',{day:'numeric',month:'short'}):'Set up your income';}
+  else if(page==='debts'){const d2=getData();sub.textContent=d2.debts.length+' account'+(d2.debts.length!==1?'s':'');}
+  else if(page==='investments'){const d2=getData();sub.textContent=d2.investments.length+' investment'+(d2.investments.length!==1?'s':'');}
+  else if(page==='expenses'){sub.textContent='This fortnight';}
+  else if(page==='paycycle'){sub.textContent='Fortnightly budget';}
+  else if(page==='reminders'){sub.textContent='Upcoming obligations';}
+}
+
+// DASHBOARD
+function renderDashboard(){
+  const d=getData();
+  const inc=d.income||0;
+  const totalDebt=d.debts.reduce((s,x)=>s+(parseFloat(x.balance)||0),0);
+  const totalInvest=d.investments.reduce((s,x)=>s+(parseFloat(x.value)||0),0);
+  const nw=totalInvest-totalDebt;
+  const now=new Date();
+  const fortStart=new Date(now);fortStart.setDate(now.getDate()-14);
+  const spent=d.expenses.filter(e=>new Date(e.date)>=fortStart).reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
+
+  document.getElementById('nw-value').textContent=fmtAUD(nw);
+  document.getElementById('nw-value').className='nw-value '+(nw>=0?'c-green':'c-red');
+  document.getElementById('nw-sub').textContent='Portfolio '+fmtAUD(totalInvest)+' — Debt '+fmtAUD(totalDebt);
+  document.getElementById('m-income').textContent=fmtAUD(inc);
+  document.getElementById('m-debt').textContent=fmtAUD(totalDebt);
+  document.getElementById('m-debt-sub').textContent=d.debts.length+' account'+(d.debts.length!==1?'s':'');
+  document.getElementById('m-invest').textContent=fmtAUD(totalInvest);
+  document.getElementById('m-invest-sub').textContent=d.investments.length+' investment'+(d.investments.length!==1?'s':'');
+  document.getElementById('m-spent').textContent=fmtAUD(spent);
+
+  const al=d.alloc;
+  const bar=document.getElementById('dash-alloc-bar');
+  const leg=document.getElementById('dash-alloc-legend');
+  bar.innerHTML=ALLOC_KEYS.map((k,i)=>`<div class="alloc-seg" style="flex:${al[k]||0};background:${ALLOC_COLORS[i]}"></div>`).join('');
+  leg.innerHTML=ALLOC_KEYS.map((k,i)=>`<div class="legend-item"><div class="legend-dot" style="background:${ALLOC_COLORS[i]}"></div><span>${ALLOC_LABELS[i]}</span><span class="legend-val">${fmtAUD(inc*(al[k]||0)/100)}</span></div>`).join('');
+
+  const snap=document.getElementById('dash-debt-snap');
+  if(!d.debts.length){snap.innerHTML='<div class="empty"><div class="empty-icon">◌</div>No debts tracked</div>';return;}
+  snap.innerHTML=d.debts.map(debt=>{
+    const bal=parseFloat(debt.balance)||0;
+    const orig=parseFloat(debt.origBalance)||bal;
+    const pct=orig>0?Math.round((1-bal/orig)*100):0;
+    return`<div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>${debt.name}</span><span class="c-red" style="font-family:'DM Mono',monospace;font-weight:500">${fmtAUD(bal)}</span></div>
+      <div class="progress"><div class="progress-fill" style="width:${pct}%;background:var(--green)"></div></div>
+      <div style="font-size:10px;color:var(--text3);margin-top:2px">${pct}% paid off</div>
+    </div>`;
+  }).join('');
+
+  renderNWChart(d);
+}
+
+function renderNWChart(d){
+  const ctx=document.getElementById('nw-chart');if(!ctx)return;
+  const inc=d.income||0;
+  let debt=d.debts.reduce((s,x)=>s+(parseFloat(x.balance)||0),0);
+  let inv=d.investments.reduce((s,x)=>s+(parseFloat(x.value)||0),0);
+  const dp=inc*(d.alloc.debt||0)/100;
+  const ia=inc*(d.alloc.invest||0)/100;
+  const ar=d.investments.length?d.investments.reduce((s,x)=>s+(parseFloat(x.expectedReturn)||7),0)/d.investments.length:7;
+  const labels=[],nwd=[],id2=[],dd=[];
+  for(let i=0;i<=12;i++){
+    const m=new Date();m.setMonth(m.getMonth()+i);
+    labels.push(m.toLocaleString('default',{month:'short'}));
+    nwd.push(Math.round(inv-debt));id2.push(Math.round(inv));dd.push(Math.round(debt));
+    inv=inv*(1+ar/100/12)+ia*2;debt=Math.max(0,debt-dp*2);
+  }
+  if(nwChart){nwChart.destroy();nwChart=null;}
+  nwChart=new Chart(ctx,{type:'line',data:{labels,datasets:[
+    {label:'Net worth',data:nwd,borderColor:'#00d68f',backgroundColor:'rgba(0,214,143,.06)',fill:true,tension:.4,pointRadius:0,borderWidth:2},
+    {label:'Portfolio',data:id2,borderColor:'#4d9eff',fill:false,tension:.4,pointRadius:0,borderWidth:1.5,borderDash:[4,3]},
+    {label:'Debt',data:dd,borderColor:'#ff5252',fill:false,tension:.4,pointRadius:0,borderWidth:1.5,borderDash:[4,3]}
+  ]},options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{
+      y:{ticks:{callback:v=>'$'+Math.round(v/1000)+'k',color:'#555',font:{size:10}},grid:{color:'rgba(255,255,255,.05)'},border:{display:false}},
+      x:{ticks:{color:'#555',font:{size:10},maxTicksLimit:6},grid:{display:false},border:{display:false}}
+    }}});
+}
+
+// PAY CYCLE
+function renderPaycycle(){
+  const d=getData();
+  document.getElementById('inp-income').value=d.income||'';
+  document.getElementById('inp-payday').value=d.nextPay||today();
+
+  const form=document.getElementById('alloc-form-rows');
+  form.innerHTML=ALLOC_KEYS.map((k,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <div style="width:8px;height:8px;border-radius:2px;background:${ALLOC_COLORS[i]};flex-shrink:0"></div>
+      <span style="flex:1;font-size:13px;color:var(--text2)">${ALLOC_LABELS[i]}</span>
+      <input type="number" class="form-input" id="alloc-${k}" value="${d.alloc[k]||0}" min="0" max="100" inputmode="decimal" style="width:70px;padding:8px 10px;text-align:right;font-family:'DM Mono',monospace" oninput="savePaycycle()">
+      <span style="font-size:13px;color:var(--text2)">%</span>
+    </div>`).join('');
+
+  updateAllocTotal(d);
+  renderPayBreakdown(d);
+}
+
+function savePaycycle(){
+  const d=getData();
+  d.income=parseFloat(document.getElementById('inp-income').value)||0;
+  d.nextPay=document.getElementById('inp-payday').value||today();
+  ALLOC_KEYS.forEach(k=>{const el=document.getElementById('alloc-'+k);if(el)d.alloc[k]=parseFloat(el.value)||0;});
+  saveData(d);
+  updateAllocTotal(d);
+  renderPayBreakdown(d);
+  updateHeader('paycycle');
+}
+
+function updateAllocTotal(d){
+  const total=ALLOC_KEYS.reduce((s,k)=>s+(d.alloc[k]||0),0);
+  const msg=document.getElementById('alloc-total-msg');
+  if(total>100){msg.textContent='Over by '+(total-100)+'%';msg.style.background='var(--red-dim)';msg.style.color='var(--red)';}
+  else if(total<100){msg.textContent=(100-total)+'% unallocated';msg.style.background='var(--amber-dim)';msg.style.color='var(--amber)';}
+  else{msg.textContent='Perfect — 100% allocated';msg.style.background='var(--green-dim)';msg.style.color='var(--green)';}
+}
+
+function renderPayBreakdown(d){
+  const inc=d.income||0;
+  document.getElementById('pay-breakdown').innerHTML=ALLOC_KEYS.map((k,i)=>`
+    <div class="pay-cell">
+      <div class="pay-cell-label"><div class="legend-dot" style="background:${ALLOC_COLORS[i]}"></div>${ALLOC_LABELS[i]}</div>
+      <div class="pay-cell-value" style="color:${ALLOC_COLORS[i]}">${fmtAUD(inc*(d.alloc[k]||0)/100)}</div>
+    </div>`).join('');
+}
+
+// DEBTS
+function renderDebts(){
+  const d=getData();
+  const el=document.getElementById('debt-list-container');
+  if(!d.debts.length){
+    el.innerHTML='<div class="empty"><div class="empty-icon">⊘</div>No debts tracked.<br>Tap + to add your first debt.</div>';
+    return;
+  }
+  el.innerHTML=d.debts.map((debt,i)=>{
+    const bal=parseFloat(debt.balance)||0;
+    const rate=parseFloat(debt.rate)||0;
+    const min=parseFloat(debt.min)||0;
+    const extra=parseFloat(debt.extra)||0;
+    const total=min+extra;
+    const mr=rate/100/12;
+    const fortnights=mr>0&&total>bal*mr/2?Math.ceil(Math.log(total/(total-bal*mr/2))/Math.log(1+mr/2)):bal>0&&total>0?bal/total*2:0;
+    const months=Math.round(fortnights/2);
+    const interest=Math.max(0,Math.round(total*fortnights-bal));
+    const orig=parseFloat(debt.origBalance)||bal;
+    const pct=orig>0?Math.round((1-bal/orig)*100):0;
+    const typeIcons={credit:'💳',personal:'🏦',car:'🚗',student:'🎓',other:'📋'};
+    const typeBadges={credit:'badge-blue',personal:'badge-amber',car:'badge-green',student:'badge-purple',other:''};
+    return`<div class="debt-card">
+      <div class="debt-header">
+        <div>
+          <div class="debt-name">${debt.name}</div>
+          <span class="badge ${typeBadges[debt.type]||''}" style="margin-top:4px;display:inline-block">${typeIcons[debt.type]||'📋'} ${debt.type}</span>
+        </div>
+        <div style="text-align:right">
+          <div class="debt-balance">${fmtAUD(bal)}</div>
+          <button class="delete-btn" onclick="removeDebt(${i})">✕</button>
+        </div>
+      </div>
+      <div class="debt-stats">
+        <div><div class="debt-stat-label">Rate</div><div class="debt-stat-value">${rate}%</div></div>
+        <div><div class="debt-stat-label">Payment</div><div class="debt-stat-value c-green">${fmtAUD(total)}</div></div>
+        <div><div class="debt-stat-label">Interest cost</div><div class="debt-stat-value c-amber">${fmtAUD(interest)}</div></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:4px">
+        <span>Debt-free in ~${months} months</span><span>${pct}% paid off</span>
+      </div>
+      <div class="progress"><div class="progress-fill" style="width:${pct}%;background:var(--green)"></div></div>
+      <div class="update-row">
+        <input class="update-input" type="number" id="bal-${i}" placeholder="Update balance..." inputmode="decimal">
+        <button class="update-btn" onclick="updateDebtBal(${i})">Update</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// INVESTMENTS
+function renderInvestments(){
+  const d=getData();
+  const el=document.getElementById('invest-list-container');
+  if(!d.investments.length){
+    el.innerHTML='<div class="empty"><div class="empty-icon">◎</div>No investments tracked.<br>Tap + to add your first.</div>';
+    renderPortChart(d);return;
+  }
+  const typeIcons={etf:'📈',super:'🏛',crypto:'₿',savings:'💰',other:'💼'};
+  el.innerHTML=d.investments.map((inv,i)=>{
+    const val=parseFloat(inv.value)||0;
+    const contrib=parseFloat(inv.amount)||0;
+    const ret=parseFloat(inv.expectedReturn)||7;
+    const projected1yr=val*(1+ret/100)+contrib*26;
+    return`<div class="invest-card">
+      <div class="invest-header">
+        <div>
+          <div class="invest-name">${typeIcons[inv.type]||'💼'} ${inv.name}</div>
+          <span class="badge ${inv.auto==='yes'?'badge-green':'badge-amber'}" style="margin-top:4px;display:inline-block">${inv.auto==='yes'?'Auto pay day':'Manual'}</span>
+        </div>
+        <div style="text-align:right">
+          <div class="invest-value">${fmtAUD(val)}</div>
+          <button class="delete-btn" onclick="removeInvest(${i})">✕</button>
+        </div>
+      </div>
+      <div class="invest-stats">
+        <div><div class="debt-stat-label">Fortnightly</div><div class="debt-stat-value">${fmtAUD(contrib)}</div></div>
+        <div><div class="debt-stat-label">Return p.a.</div><div class="debt-stat-value">${ret}%</div></div>
+        <div><div class="debt-stat-label">1yr projected</div><div class="debt-stat-value c-green">${fmtAUD(projected1yr)}</div></div>
+        <div><div class="debt-stat-label">Annual growth</div><div class="debt-stat-value c-green">${fmtAUD(val*ret/100)}</div></div>
+      </div>
+      <div class="update-row">
+        <input class="update-input" type="number" id="inv-${i}" placeholder="Update value..." inputmode="decimal">
+        <button class="update-btn" onclick="updateInvestVal(${i})">Update</button>
+      </div>
+    </div>`;
+  }).join('')+`<div style="height:12px"></div>`;
+  renderPortChart(d);
+}
+
+function renderPortChart(d){
+  const ctx=document.getElementById('port-chart');if(!ctx)return;
+  const datasets=d.investments.map((inv,idx)=>{
+    const val=parseFloat(inv.value)||0;
+    const contrib=parseFloat(inv.amount)||0;
+    const ret=parseFloat(inv.expectedReturn)||7;
+    const data=[val];let v=val;
+    for(let m=1;m<=24;m++){v=v*(1+ret/100/12)+contrib*2;data.push(Math.round(v));}
+    return{label:inv.name,data,borderColor:CAT_COLORS[idx%CAT_COLORS.length],fill:false,tension:.4,pointRadius:0,borderWidth:2};
+  });
+  const labels=[];
+  for(let i=0;i<=24;i++){const m=new Date();m.setMonth(m.getMonth()+i);labels.push(m.toLocaleString('default',{month:'short',year:'2-digit'}));}
+  if(portChart){portChart.destroy();portChart=null;}
+  portChart=new Chart(ctx,{type:'line',data:{labels,datasets:datasets.length?datasets:[{label:'No investments',data:Array(25).fill(0),borderColor:'#555',fill:false}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'bottom',labels:{color:'#888',boxWidth:8,font:{size:10},padding:12}}},
+      scales:{y:{ticks:{callback:v=>'$'+Math.round(v/1000)+'k',color:'#555',font:{size:10}},grid:{color:'rgba(255,255,255,.05)'},border:{display:false}},
+               x:{ticks:{color:'#555',font:{size:10},maxTicksLimit:6},grid:{display:false},border:{display:false}}}}});
+}
+
+// EXPENSES
+function renderExpenses(){
+  const d=getData();
+  const now=new Date();
+  const fortStart=new Date(now);fortStart.setDate(now.getDate()-14);
+  const recent=d.expenses.filter(e=>new Date(e.date)>=fortStart).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const cats={};
+  recent.forEach(e=>{if(!cats[e.category])cats[e.category]=0;cats[e.category]+=parseFloat(e.amount)||0;});
+  const total=Object.values(cats).reduce((s,v)=>s+v,0);
+  const sorted=Object.entries(cats).sort((a,b)=>b[1]-a[1]);
+
+  document.getElementById('expense-cats').innerHTML=sorted.length?sorted.map(([cat,amt],i)=>`
+    <div class="cat-row">
+      <div style="width:10px;height:10px;border-radius:2px;background:${CAT_COLORS[i%CAT_COLORS.length]};flex-shrink:0"></div>
+      <div class="cat-bar-wrap">
+        <div class="cat-name">${cat}</div>
+        <div class="cat-mini-bar" style="width:${Math.round(amt/total*100)}%;background:${CAT_COLORS[i%CAT_COLORS.length]}"></div>
+      </div>
+      <div class="cat-pct">${Math.round(amt/total*100)}%</div>
+      <div class="cat-amt">${fmtAUD(amt)}</div>
+    </div>`).join(''):`<div class="empty"><div class="empty-icon">≋</div>No expenses this fortnight</div>`;
+
+  document.getElementById('expense-list').innerHTML=recent.slice(0,15).length?recent.slice(0,15).map((e,i)=>`
+    <div class="list-item">
+      <div class="item-icon" style="background:var(--surface2)">
+        <span style="font-size:14px">${getCatEmoji(e.category)}</span>
+      </div>
+      <div class="item-body">
+        <div class="item-name">${e.description}</div>
+        <div class="item-sub">${e.category} · ${new Date(e.date).toLocaleDateString('en-AU',{day:'2-digit',month:'short'})}</div>
+      </div>
+      <div class="item-right">
+        <div class="item-amount c-red">${fmtAUD(e.amount)}</div>
+        <button class="delete-btn" style="font-size:14px;margin-top:2px" onclick="removeExpense(${d.expenses.indexOf(e)})">✕</button>
+      </div>
+    </div>`).join('')+`<div style="text-align:center;padding:10px 0;font-size:12px;color:var(--text2);font-family:'DM Mono',monospace;font-weight:500">Total ${fmtAUD(total)}</div>`:
+    `<div class="empty"><div class="empty-icon">≋</div>No transactions yet</div>`;
+}
+
+function getCatEmoji(cat){
+  const m={'Groceries':'🛒','Rent / mortgage':'🏠','Utilities':'⚡','Transport':'🚌','Eating out':'🍜','Entertainment':'🎬','Health':'💊','Clothing':'👕','Subscriptions':'📱','Other':'📌'};
+  return m[cat]||'📌';
+}
+
+// REMINDERS
+function renderReminders(){
+  const d=getData();
+  const now=new Date();
+  const payDate=d.nextPay?new Date(d.nextPay):null;
+  const days=payDate?Math.ceil((payDate-now)/86400000):null;
+
+  const paydayItems=[];
+  if(payDate){
+    paydayItems.push({text:`Income arrives${days<=0?' today':days===1?' tomorrow':' in '+days+' days'}`,date:payDate.toLocaleDateString('en-AU',{day:'numeric',month:'short'}),color:days<=0?'var(--green)':days<=3?'var(--amber)':'var(--blue)'});
+  }
+  d.investments.filter(i=>i.auto==='yes').forEach(inv=>{
+    paydayItems.push({text:`Invest ${fmtAUD(inv.amount)} → ${inv.name}`,date:'Same as pay',color:'var(--green)'});
+  });
+  d.investments.filter(i=>i.auto==='no').forEach(inv=>{
+    paydayItems.push({text:`Manual: ${fmtAUD(inv.amount)} → ${inv.name}`,date:'Needs action',color:'var(--amber)'});
+  });
+
+  const upcomingItems=[];
+  d.debts.forEach(debt=>{
+    const total=(parseFloat(debt.min)||0)+(parseFloat(debt.extra)||0);
+    upcomingItems.push({text:`Pay ${fmtAUD(total)} → ${debt.name}`,date:`This fortnight`,color:'var(--red)'});
+  });
+
+  document.getElementById('reminders-payday').innerHTML=paydayItems.length?paydayItems.map(r=>`
+    <div class="reminder-row">
+      <div class="reminder-dot" style="background:${r.color}"></div>
+      <div class="reminder-text">${r.text}</div>
+      <div class="reminder-date">${r.date}</div>
+    </div>`).join(''):`<div class="empty" style="padding:16px">Set pay date to see reminders</div>`;
+
+  document.getElementById('reminders-upcoming').innerHTML=upcomingItems.length?upcomingItems.map(r=>`
+    <div class="reminder-row">
+      <div class="reminder-dot" style="background:${r.color}"></div>
+      <div class="reminder-text">${r.text}</div>
+      <div class="reminder-date">${r.date}</div>
+    </div>`).join(''):`<div class="empty" style="padding:16px">No debt payments set up</div>`;
+}
+
+// SHEET
+function openFab(){
+  if(currentPage==='debts') openSheet('debt');
+  else if(currentPage==='investments') openSheet('invest');
+  else if(currentPage==='expenses') openSheet('expense');
+}
+function openSheet(type){
+  currentSheet=type;
+  document.getElementById('sheet-overlay').classList.add('open');
+  document.getElementById('sheet-'+type).classList.add('open');
+  if(type==='expense') document.getElementById('e-date').value=today();
+}
+function closeSheet(){
+  if(currentSheet){
+    document.getElementById('sheet-overlay').classList.remove('open');
+    document.getElementById('sheet-'+currentSheet).classList.remove('open');
+    currentSheet=null;
+  }
+}
+
+// ADD/REMOVE
+function addDebt(){
+  const d=getData();
+  const bal=parseFloat(document.getElementById('d-balance').value)||0;
+  d.debts.push({
+    name:document.getElementById('d-name').value||'Debt',
+    type:document.getElementById('d-type').value,
+    balance:bal,origBalance:bal,
+    rate:parseFloat(document.getElementById('d-rate').value)||0,
+    min:parseFloat(document.getElementById('d-min').value)||0,
+    extra:parseFloat(document.getElementById('d-extra').value)||0
+  });
+  saveData(d);closeSheet();
+  ['d-name','d-balance','d-rate','d-min','d-extra'].forEach(id=>document.getElementById(id).value='');
+  renderDebts();updateHeader('debts');
+}
+
+function removeDebt(i){const d=getData();d.debts.splice(i,1);saveData(d);renderDebts();updateHeader('debts');}
+
+function updateDebtBal(i){
+  const d=getData();
+  const v=parseFloat(document.getElementById('bal-'+i).value);
+  if(!isNaN(v)&&v>=0){d.debts[i].balance=v;saveData(d);renderDebts();}
+}
+
+function addInvest(){
+  const d=getData();
+  d.investments.push({
+    name:document.getElementById('i-name').value||'Investment',
+    type:document.getElementById('i-type').value,
+    amount:parseFloat(document.getElementById('i-amount').value)||0,
+    value:parseFloat(document.getElementById('i-value').value)||0,
+    expectedReturn:parseFloat(document.getElementById('i-return').value)||7,
+    auto:document.getElementById('i-auto').value
+  });
+  saveData(d);closeSheet();
+  ['i-name','i-amount','i-value','i-return'].forEach(id=>document.getElementById(id).value='');
+  renderInvestments();updateHeader('investments');
+}
+
+function removeInvest(i){const d=getData();d.investments.splice(i,1);saveData(d);renderInvestments();updateHeader('investments');}
+
+function updateInvestVal(i){
+  const d=getData();
+  const v=parseFloat(document.getElementById('inv-'+i).value);
+  if(!isNaN(v)&&v>=0){d.investments[i].value=v;saveData(d);renderInvestments();}
+}
+
+function addExpense(){
+  const d=getData();
+  d.expenses.push({
+    description:document.getElementById('e-desc').value||'Expense',
+    amount:parseFloat(document.getElementById('e-amount').value)||0,
+    category:document.getElementById('e-cat').value,
+    date:document.getElementById('e-date').value||today()
+  });
+  saveData(d);closeSheet();
+  document.getElementById('e-desc').value='';
+  document.getElementById('e-amount').value='';
+  renderExpenses();
+}
+
+function removeExpense(i){const d=getData();d.expenses.splice(i,1);saveData(d);renderExpenses();}
+
+// PAYCYCLE LISTENERS
+document.getElementById('inp-income').addEventListener('input',savePaycycle);
+document.getElementById('inp-payday').addEventListener('input',savePaycycle);
+
+// INIT
+renderDashboard();
+updateHeader('dashboard');
+
+// SERVICE WORKER
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
