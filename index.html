@@ -9,6 +9,8 @@
 <meta name="theme-color" content="#0a0a0a">
 <link rel="manifest" href="manifest.json">
 <title>FinTrack AUD</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
 :root{
@@ -267,9 +269,141 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--tx);font-famil
 .exp-desc{font-size:12px;color:var(--t2);margin-top:2px}
 /* SECTION DIVIDER */
 .divl{font-size:11px;font-weight:500;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin:18px 0 8px}
+/* INSIGHT STRIP */
+.insight{background:linear-gradient(135deg,rgba(77,166,255,.08),rgba(167,139,250,.06));border:.5px solid rgba(77,166,255,.18);border-radius:14px;padding:14px 16px;margin-bottom:12px}
+.insight-row{display:flex;align-items:flex-start;gap:10px;padding:6px 0;border-bottom:.5px solid rgba(255,255,255,.05)}
+.insight-row:last-child{border-bottom:none;padding-bottom:0}
+.insight-row:first-child{padding-top:0}
+.insight-ico{font-size:16px;flex-shrink:0;margin-top:1px}
+.insight-txt{font-size:12px;color:var(--t2);line-height:1.5;flex:1}
+.insight-txt strong{color:var(--tx);font-weight:500}
+/* CASHFLOW BAR */
+.cf-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:.5px solid var(--b1)}
+.cf-row:last-child{border-bottom:none}
+.cf-dot{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+.cf-label{flex:1;font-size:13px}
+.cf-sub{font-size:10px;color:var(--t3);margin-top:1px}
+.cf-amt{font-size:13px;font-weight:500;font-family:'DM Mono',monospace;min-width:72px;text-align:right}
+.cf-pct{font-size:11px;color:var(--t3);min-width:32px;text-align:right}
+.cf-bar-wrap{width:100%;height:6px;background:var(--b2);border-radius:3px;overflow:hidden;margin-top:10px}
+.cf-bar-inner{display:flex;height:100%;border-radius:3px;overflow:hidden}
+.cf-seg{height:100%;transition:width .5s ease}
+/* ANALYTICS GRID */
+.an-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.an-cell{background:var(--s2);border-radius:12px;padding:12px 13px;border:.5px solid var(--b1)}
+.an-lbl{font-size:10px;color:var(--t2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px}
+.an-val{font-size:18px;font-weight:600;font-family:'DM Mono',monospace;letter-spacing:-.4px;line-height:1.1}
+.an-sub{font-size:10px;color:var(--t3);margin-top:4px;line-height:1.4}
+/* BURN RATE GAUGE */
+.burn-gauge{display:flex;align-items:center;gap:8px;margin-top:8px}
+.burn-track{flex:1;height:5px;background:var(--b2);border-radius:3px;overflow:hidden}
+.burn-fill{height:100%;border-radius:3px;transition:width .5s}
+.burn-lbl{font-size:10px;font-family:'DM Mono',monospace;white-space:nowrap}
+/* DEBT FREEDOM */
+.df-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:.5px solid var(--b1)}
+.df-row:last-child{border-bottom:none}
+.df-name{font-size:13px}
+.df-meta{font-size:11px;color:var(--t2);margin-top:1px}
+.df-date{font-size:13px;font-weight:500;font-family:'DM Mono',monospace;text-align:right}
+.df-int{font-size:10px;color:var(--am);margin-top:1px;text-align:right}
+
+/* INCOME ITEMS */
+.inc-item{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:.5px solid var(--b1)}
+.inc-item:last-child{border-bottom:none;padding-bottom:0}
+.inc-item:first-child{padding-top:0}
+.inc-ico{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;background:var(--grb)}
+.inc-body{flex:1;min-width:0}
+.inc-name{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.inc-meta{font-size:11px;color:var(--t2);margin-top:1px}
+.inc-amt{font-size:14px;font-weight:500;font-family:'DM Mono',monospace;color:var(--gr)}
+.inc-summary-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:.5px solid var(--b1)}
+.inc-summary-row:last-child{border-bottom:none}
 </style>
 </head>
 <body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen" style="
+  position:fixed;inset:0;background:#0a0a0a;z-index:1000;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px;font-family:'DM Sans',system-ui,sans-serif;
+">
+  <div style="width:100%;max-width:360px">
+    <!-- Logo -->
+    <div style="text-align:center;margin-bottom:36px">
+      <div style="font-size:36px;margin-bottom:10px">💰</div>
+      <div style="font-size:26px;font-weight:600;color:#efefef;letter-spacing:-.5px">FinTrack</div>
+      <div style="font-size:13px;color:#666;margin-top:4px">Your personal finance hub</div>
+    </div>
+
+    <!-- Tab toggle -->
+    <div id="auth-tabs" style="display:flex;background:#1e1e1e;border-radius:12px;padding:3px;gap:3px;margin-bottom:24px;border:.5px solid rgba(255,255,255,.07)">
+      <div id="tab-signin" onclick="switchAuthTab('signin')" style="flex:1;padding:10px;text-align:center;font-size:14px;font-weight:500;border-radius:9px;cursor:pointer;background:#141414;color:#efefef;box-shadow:0 1px 3px rgba(0,0,0,.4)">Sign in</div>
+      <div id="tab-signup" onclick="switchAuthTab('signup')" style="flex:1;padding:10px;text-align:center;font-size:14px;font-weight:500;border-radius:9px;cursor:pointer;color:#666">Sign up</div>
+    </div>
+
+    <!-- Name field (signup only) -->
+    <div id="name-wrap" style="display:none;margin-bottom:14px">
+      <label style="font-size:12px;color:#888;display:block;margin-bottom:6px">Your name</label>
+      <input id="auth-name" type="text" placeholder="Kumu" autocomplete="name"
+        style="width:100%;padding:13px 14px;background:#1e1e1e;border:.5px solid rgba(255,255,255,.13);border-radius:12px;color:#efefef;font-size:15px;font-family:inherit;outline:none;-webkit-appearance:none">
+    </div>
+
+    <!-- Email -->
+    <div style="margin-bottom:14px">
+      <label style="font-size:12px;color:#888;display:block;margin-bottom:6px">Email</label>
+      <input id="auth-email" type="email" placeholder="you@example.com" autocomplete="email"
+        style="width:100%;padding:13px 14px;background:#1e1e1e;border:.5px solid rgba(255,255,255,.13);border-radius:12px;color:#efefef;font-size:15px;font-family:inherit;outline:none;-webkit-appearance:none">
+    </div>
+
+    <!-- Password -->
+    <div style="margin-bottom:6px">
+      <label style="font-size:12px;color:#888;display:block;margin-bottom:6px">Password</label>
+      <input id="auth-pw" type="password" placeholder="••••••••" autocomplete="current-password"
+        style="width:100%;padding:13px 14px;background:#1e1e1e;border:.5px solid rgba(255,255,255,.13);border-radius:12px;color:#efefef;font-size:15px;font-family:inherit;outline:none;-webkit-appearance:none">
+    </div>
+
+    <!-- Forgot password link -->
+    <div id="forgot-wrap" style="text-align:right;margin-bottom:20px">
+      <span onclick="handleForgotPassword()" style="font-size:12px;color:#4da6ff;cursor:pointer">Forgot password?</span>
+    </div>
+
+    <!-- Error message -->
+    <div id="auth-error" style="display:none;background:rgba(255,92,92,.1);border:.5px solid rgba(255,92,92,.22);border-radius:10px;padding:10px 13px;font-size:13px;color:#ff5c5c;margin-bottom:16px"></div>
+
+    <!-- Submit button -->
+    <button id="auth-btn" onclick="handleAuth()" style="
+      width:100%;padding:15px;background:#00d68f;color:#0a0a0a;border:none;
+      border-radius:13px;font-size:16px;font-weight:600;font-family:inherit;
+      cursor:pointer;transition:opacity .15s;
+    ">Sign in</button>
+
+    <!-- Sync status shown after login -->
+    <div id="auth-loading" style="display:none;text-align:center;margin-top:20px">
+      <div style="font-size:13px;color:#888" id="auth-loading-msg">Signing in…</div>
+      <div style="margin-top:10px;width:100%;height:2px;background:#1e1e1e;border-radius:1px;overflow:hidden">
+        <div id="auth-progress" style="height:100%;width:0%;background:#00d68f;transition:width .4s ease;border-radius:1px"></div>
+      </div>
+    </div>
+
+    <div style="text-align:center;margin-top:20px;font-size:12px;color:#444">
+      Your data is encrypted and stored securely in the cloud
+    </div>
+  </div>
+</div>
+
+<!-- SYNC STATUS BADGE (shown in app when syncing) -->
+<div id="sync-badge" style="
+  position:fixed;top:calc(env(safe-area-inset-top,44px) + 56px);right:14px;
+  background:#1e1e1e;border:.5px solid rgba(255,255,255,.13);border-radius:20px;
+  padding:5px 11px;font-size:11px;font-weight:500;
+  display:none;align-items:center;gap:5px;z-index:99;
+  transition:opacity .3s;
+">
+  <div id="sync-dot" style="width:6px;height:6px;border-radius:50%;background:#888"></div>
+  <span id="sync-text">Syncing…</span>
+</div>
+
 <div id="app">
 <div class="hdr">
   <div><div class="ht" id="ht">FinTrack</div><div class="hs" id="hst">Your financial overview</div></div>
@@ -282,8 +416,10 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--tx);font-famil
 <div id="pg-dashboard" class="page active">
   <div class="hs-ring" id="hs-ring"></div>
   <div class="nwh"><div class="nwl">Net worth</div><div class="nwv" id="nwv">$0</div><div class="nws" id="nws">—</div></div>
+
+  <!-- KEY METRICS ROW 1 -->
   <div class="mr">
-    <div class="mc"><div class="ml" id="inc-lbl">Income/period</div><div class="mv" style="color:var(--gr)" id="mi">$0</div><div class="ms">AUD take-home</div></div>
+    <div class="mc"><div class="ml" id="inc-lbl">Income/period</div><div class="mv" style="color:var(--gr)" id="mi">$0</div><div class="ms" id="inc-sub">AUD take-home</div></div>
     <div class="mc"><div class="ml">Total debt</div><div class="mv" style="color:var(--rd)" id="md">$0</div><div class="ms" id="mds">0 accounts</div></div>
   </div>
   <div class="mr">
@@ -292,11 +428,35 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--tx);font-famil
   </div>
   <div class="mr">
     <div class="mc"><div class="ml" id="spent-lbl">Spent (period)</div><div class="mv" style="color:var(--am)" id="msp">$0</div><div class="ms" id="bud-lbl">of budget</div></div>
-    <div class="mc"><div class="ml" id="inc-lbl">Income/period</div><div class="mv" style="color:var(--gr)" id="mi">$0</div><div class="ms">AUD take-home</div></div>
+    <div class="mc"><div class="ml">True cashflow</div><div class="mv" id="mcf">$0</div><div class="ms" id="mcf-sub">after obligations</div></div>
   </div>
+
+  <!-- INSIGHT STRIP -->
+  <div id="insight-strip"></div>
+
+  <!-- CASHFLOW BREAKDOWN -->
+  <div class="card" id="cashflow-card">
+    <div class="ct" style="margin-bottom:14px">Where your money goes</div>
+    <div id="cashflow-body"></div>
+  </div>
+
+  <!-- ANALYTICS GRID -->
+  <div class="card">
+    <div class="ct" style="margin-bottom:14px">Period analytics</div>
+    <div id="analytics-body"></div>
+  </div>
+
+  <!-- DEBT FREEDOM -->
+  <div class="card" id="debt-freedom-card">
+    <div class="ct" style="margin-bottom:12px">Debt freedom tracker</div>
+    <div id="debt-freedom-body"></div>
+  </div>
+
+  <!-- ALLOCATIONS -->
   <div class="card"><div class="ct" style="margin-bottom:8px">Pay allocation</div><div class="abar" id="dbar"></div><div class="lgrid" id="dleg"></div></div>
-  <div class="card"><div class="ct" style="margin-bottom:12px">Debt snapshot</div><div id="dsnap"></div></div>
-  <div class="card"><div class="ch"><div class="ct">Net worth history</div><div class="ca" id="snap-btn" onclick="takeNWSnapshot()">Save snapshot</div></div><div class="cw"><canvas id="nwc"></canvas></div></div>
+
+  <!-- NW CHART -->
+  <div class="card"><div class="ch"><div class="ct">Net worth history</div><div class="ca" onclick="takeNWSnapshot()">Save snapshot</div></div><div class="cw"><canvas id="nwc"></canvas></div></div>
 </div>
 
 <!-- PAY CYCLE -->
@@ -339,7 +499,11 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--tx);font-famil
 <div id="pg-expenses" class="page">
   <div id="alert-boxes"></div>
   <div class="card">
-    <div class="ch"><div class="ct">By category</div><div class="ca" onclick="openSheet('expense')">+ Add</div></div>
+    <div class="ch"><div class="ct">Income this period</div><div class="ca" onclick="openSheet('income')">+ Add income</div></div>
+    <div id="income-summary"></div>
+  </div>
+  <div class="card">
+    <div class="ch"><div class="ct">By category</div><div class="ca" onclick="openSheet('expense')">+ Add expense</div></div>
     <div id="ecats"></div>
   </div>
   <div class="card">
@@ -368,9 +532,11 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--tx);font-famil
   </div>
   <div class="divl">Data & backup</div>
   <div class="exp-btn" onclick="exportJSON()"><div class="exp-ico" style="background:var(--grb)">📦</div><div class="exp-body"><div class="exp-name">Export full backup (JSON)</div><div class="exp-desc">All data — re-importable to restore</div></div></div>
-  <div class="exp-btn" onclick="exportCSV()"><div class="exp-ico" style="background:var(--blb)">📊</div><div class="exp-body"><div class="exp-name">Export expenses (CSV)</div><div class="exp-desc">Open in Excel or Google Sheets</div></div></div>
+  <div class="exp-btn" onclick="exportCSV()"><div class="exp-ico" style="background:var(--blb)">📊</div><div class="exp-body"><div class="exp-name">Export expenses &amp; income (CSV)</div><div class="exp-desc">Expenses + income — importable back in</div></div></div>
   <div class="exp-btn" onclick="document.getElementById('import-file').click()"><div class="exp-ico" style="background:var(--amb)">📥</div><div class="exp-body"><div class="exp-name">Import backup (JSON)</div><div class="exp-desc">Restore from a previous export</div></div></div>
   <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(this)">
+  <div class="exp-btn" onclick="document.getElementById('import-csv-file').click()"><div class="exp-ico" style="background:var(--blb)">📥</div><div class="exp-body"><div class="exp-name">Import from CSV</div><div class="exp-desc">Load expenses &amp; income from exported CSV</div></div></div>
+  <input type="file" id="import-csv-file" accept=".csv" style="display:none" onchange="importCSV(this)">
 
   <div class="divl">Recurring expenses</div>
   <div id="rec-list"></div>
@@ -540,6 +706,33 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--tx);font-famil
   <div class="sha"><button class="btn btn-s" onclick="closeSheet()">Cancel</button><button class="btn btn-p" onclick="saveGoal()">Save</button></div>
 </div>
 
+
+<!-- INCOME SHEET -->
+<div class="sheet" id="sh-income">
+  <div class="sh"></div><div class="sht" id="isht">Add income</div>
+  <input type="hidden" id="inc-ei">
+  <div class="fg"><label class="fl">Description</label><input class="fi" id="inc-desc" placeholder="Freelance project, Tax return…"></div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Amount ($)</label><input class="fi" id="inc-amt" type="number" placeholder="500" inputmode="decimal"></div>
+    <div class="fg"><label class="fl">Date</label><input class="fi" id="inc-date" type="date"></div>
+  </div>
+  <div class="fg"><label class="fl">Source / category</label>
+    <select class="fs" id="inc-cat">
+      <option value="Freelance">💼 Freelance / contract</option>
+      <option value="Side hustle">🚀 Side hustle</option>
+      <option value="Investment return">📈 Investment return</option>
+      <option value="Rental income">🏠 Rental income</option>
+      <option value="Tax return">🏛 Tax return</option>
+      <option value="Gift / windfall">🎁 Gift / windfall</option>
+      <option value="Government payment">📋 Government payment</option>
+      <option value="Sale">🛍 Sale (car, items…)</option>
+      <option value="Other income">💰 Other income</option>
+    </select>
+  </div>
+  <div class="fg"><label class="fl">Notes (optional)</label><input class="fi" id="inc-notes" placeholder="Client name, invoice #…"></div>
+  <div class="sha"><button class="btn btn-s" onclick="closeSheet()">Cancel</button><button class="btn btn-p" onclick="saveIncome()">Save</button></div>
+</div>
+
 </div><!-- /app -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
@@ -556,28 +749,119 @@ const pPerYear=()=>D().cycle==='monthly'?12:26;
 const pDays=()=>D().cycle==='monthly'?30.44:14;
 
 /* ═══════════════════════════════════════════
-   DATA LAYER
+   SUPABASE + DATA LAYER
 ═══════════════════════════════════════════ */
+const SUPA_URL = 'https://iknsnikjtephgndljwfe.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlrbnNuaWtqdGVwaGduZGxqd2ZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2MjgwNjYsImV4cCI6MjA5MTIwNDA2Nn0.nVEx_mIOumjfhnKb6gsNFb1dewkoqVLVF1fweZx-1Aw';
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+let _currentUser = null;      // logged-in user object
+let _syncTimer = null;        // debounce handle
+let _pendingSync = false;     // dirty flag
+
+function def(){return{cycle:'monthly',income:0,nextPay:today(),alloc:{needs:50,debt:20,invest:15,save:10,spend:5},categoryBudgets:{},debtStrategy:'avalanche',debts:[],investments:[],savingsGoals:[],recurringExpenses:[],expenses:[],additionalIncome:[],nwHistory:[]};}
+
+// Local cache key per user so family members don't share localStorage
+function localKey(){return _currentUser ? 'ft_'+_currentUser.id : 'ft6';}
+
 function D(){
   try{
-    const raw=localStorage.getItem('ft6');
+    const raw = localStorage.getItem(localKey());
     if(raw) return JSON.parse(raw);
-    // migrate from ft5
-    const old=localStorage.getItem('ft5');
-    if(old){
-      const o=JSON.parse(old);
-      const migrated={...def(),...o,savingsGoals:[],recurringExpenses:[],nwHistory:[],categoryBudgets:{},debtStrategy:'avalanche'};
-      // migrate linkedCC to paymentSource
+    // migrate old anonymous data on first login
+    const legacy = localStorage.getItem('ft6') || localStorage.getItem('ft5');
+    if(legacy){
+      const o = JSON.parse(legacy);
+      const migrated = {...def(),...o,
+        savingsGoals: o.savingsGoals||[],
+        recurringExpenses: o.recurringExpenses||[],
+        nwHistory: o.nwHistory||[],
+        categoryBudgets: o.categoryBudgets||{},
+        debtStrategy: o.debtStrategy||'avalanche',
+        additionalIncome: o.additionalIncome||[]
+      };
       migrated.expenses=(o.expenses||[]).map(e=>({...e,paymentSource:e.linkedCC?'cc':'debit',ccDebtIdx:e.linkedCC?.debtIdx??null}));
-      // add creditLimit to debts
       migrated.debts=(o.debts||[]).map(d=>({...d,creditLimit:d.creditLimit||0}));
-      SD(migrated);return migrated;
+      SD(migrated);
+      return migrated;
     }
     return def();
   }catch(e){return def();}
 }
-function def(){return{cycle:'monthly',income:0,nextPay:today(),alloc:{needs:50,debt:20,invest:15,save:10,spend:5},categoryBudgets:{},debtStrategy:'avalanche',debts:[],investments:[],savingsGoals:[],recurringExpenses:[],expenses:[],nwHistory:[]};}
-function SD(d){localStorage.setItem('ft6',JSON.stringify(d));}
+
+function SD(d){
+  // Always write to localStorage immediately (works offline too)
+  localStorage.setItem(localKey(), JSON.stringify(d));
+  // Debounce cloud sync: wait 1.5s after last save to batch writes
+  if(_currentUser){
+    _pendingSync = true;
+    clearTimeout(_syncTimer);
+    _syncTimer = setTimeout(()=>syncToCloud(d), 1500);
+  }
+}
+
+async function syncToCloud(d){
+  if(!_currentUser || !_pendingSync) return;
+  _pendingSync = false;
+  showSyncBadge('syncing');
+  try{
+    const {error} = await supa.from('fintrack_data').upsert(
+      {user_id: _currentUser.id, data: d, updated_at: new Date().toISOString()},
+      {onConflict: 'user_id'}
+    );
+    if(error) throw error;
+    showSyncBadge('saved');
+  }catch(err){
+    console.warn('Sync failed, will retry:', err.message);
+    showSyncBadge('error');
+    _pendingSync = true; // retry on next save
+  }
+}
+
+async function loadFromCloud(){
+  if(!_currentUser) return;
+  showSyncBadge('syncing');
+  try{
+    const {data, error} = await supa.from('fintrack_data')
+      .select('data, updated_at')
+      .eq('user_id', _currentUser.id)
+      .single();
+    if(error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows (new user)
+    if(data?.data){
+      // Merge: take cloud version if newer than local
+      const local = D();
+      const cloudUpdated = new Date(data.updated_at).getTime();
+      const localRaw = localStorage.getItem(localKey());
+      // If cloud is newer or local is empty default, use cloud
+      if(!localRaw || cloudUpdated > Date.now() - 5000){
+        localStorage.setItem(localKey(), JSON.stringify(data.data));
+      }
+    }
+    showSyncBadge('saved');
+  }catch(err){
+    console.warn('Cloud load failed, using local cache:', err.message);
+    showSyncBadge('offline');
+  }
+}
+
+function showSyncBadge(state){
+  const badge = document.getElementById('sync-badge');
+  const dot = document.getElementById('sync-dot');
+  const txt = document.getElementById('sync-text');
+  if(!badge) return;
+  const states = {
+    syncing: {color:'#ffa940', text:'Syncing…', show:true},
+    saved:   {color:'#00d68f', text:'Saved',    show:true},
+    offline: {color:'#888',    text:'Offline',  show:true},
+    error:   {color:'#ff5c5c', text:'Sync error',show:true},
+    hide:    {color:'#888',    text:'',          show:false}
+  };
+  const s = states[state]||states.hide;
+  dot.style.background = s.color;
+  txt.textContent = s.text;
+  badge.style.display = s.show ? 'flex' : 'none';
+  if(state === 'saved') setTimeout(()=>showSyncBadge('hide'), 2500);
+}
 
 /* ═══════════════════════════════════════════
    STATE
@@ -783,18 +1067,35 @@ function rdDash(){
   const d=D();
   rdHealthScore();rdAlertsBanner();
   const inc=d.income||0;
+  const perY=pPerYear();
+  const lbl=pLabel();
   const tDebt=d.debts.reduce((s,x)=>s+(parseFloat(x.balance)||0),0);
   const tInv=d.investments.reduce((s,x)=>s+(parseFloat(x.value)||0),0);
   const tSav=(d.savingsGoals||[]).reduce((s,g)=>s+(parseFloat(g.currentAmount)||0),0);
   const nw=tInv+tSav-tDebt;
-  const now=new Date(),pStart=new Date(now);pStart.setDate(now.getDate()-Math.round(pDays()));
-  const sp=d.expenses.filter(e=>new Date(e.date)>=pStart).reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
+  const now=new Date();
+  const pStart=new Date(now);pStart.setDate(now.getDate()-Math.round(pDays()));
+  const periodExp=d.expenses.filter(e=>new Date(e.date)>=pStart);
+  const sp=periodExp.reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
   const totalBudget=inc*(((d.alloc.needs||0)+(d.alloc.spend||0))/100);
+
+  /* ── FIXED OBLIGATIONS ── */
+  const totalDebtPay=d.debts.reduce((s,x)=>(parseFloat(x.min)||0)+(parseFloat(x.extra)||0)+s,0);
+  const totalInvest=d.investments.reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
+  const totalSavePct=inc*(d.alloc.save||0)/100;
+  const totalObligations=totalDebtPay+totalInvest+totalSavePct;
+  const cashflow=inc-totalObligations-sp;
+
+  /* ── UPDATE METRIC CARDS ── */
   document.getElementById('nwv').textContent=(nw<0?'-':'')+fmtAUD(nw);
   document.getElementById('nwv').style.color=nw>=0?'var(--gr)':'var(--rd)';
-  document.getElementById('nws').textContent='Portfolio '+fmtAUD(tInv)+'  ·  Savings '+fmtAUD(tSav)+'  ·  Debt '+fmtAUD(tDebt);
-  document.getElementById('mi').textContent=fmtAUD(inc);
-  const incLbl=document.getElementById('inc-lbl');if(incLbl)incLbl.textContent=d.cycle==='monthly'?'Income/month':'Income/fn';
+  document.getElementById('nws').textContent='Invest '+fmtAUD(tInv)+'  ·  Savings '+fmtAUD(tSav)+'  ·  Debt −'+fmtAUD(tDebt);
+  const now2=new Date(),pStart2=new Date(now2);pStart2.setDate(now2.getDate()-Math.round(pDays()));
+  const addInc=(d.additionalIncome||[]).filter(i=>new Date(i.date)>=pStart2).reduce((s,i)=>s+(parseFloat(i.amount)||0),0);
+  const totalPeriodInc=inc+addInc;
+  const incLbl=document.getElementById('inc-lbl');if(incLbl)incLbl.textContent=addInc>0?'Total income':'Income/'+(d.cycle==='monthly'?'month':'fn');
+  document.getElementById('mi').textContent=fmtAUD(totalPeriodInc);
+  const incSub=document.getElementById('inc-sub');if(incSub)incSub.textContent=addInc>0?'Pay '+fmtAUD(inc)+' + extras '+fmtAUD(addInc):'AUD take-home';
   document.getElementById('md').textContent=fmtAUD(tDebt);
   document.getElementById('mds').textContent=d.debts.length+' account'+(d.debts.length!==1?'s':'');
   document.getElementById('mv').textContent=fmtAUD(tInv);
@@ -804,15 +1105,138 @@ function rdDash(){
   document.getElementById('msp').textContent=fmtAUD(sp);
   document.getElementById('msp').style.color=sp>totalBudget?'var(--rd)':sp>totalBudget*.8?'var(--am)':'var(--am)';
   document.getElementById('bud-lbl').textContent=totalBudget>0?'of '+fmtAUD(totalBudget)+' budget':'expenses logged';
+  const cfEl=document.getElementById('mcf');
+  cfEl.textContent=(cashflow<0?'-':'')+fmtAUD(cashflow);
+  cfEl.style.color=cashflow>=0?'var(--gr)':'var(--rd)';
+  document.getElementById('mcf-sub').textContent=cashflow>=0?'discretionary left':'over budget';
+
+  /* ── INSIGHT STRIP ── */
+  const insights=[];
+  // Savings rate actual
+  const actualSaved=totalInvest+totalSavePct;
+  const savingsRate=inc>0?Math.round(actualSaved/inc*100):0;
+  const targetRate=(d.alloc.invest||0)+(d.alloc.save||0);
+  if(savingsRate>=targetRate&&savingsRate>0) insights.push({ico:'💪',txt:`You're saving <strong>${savingsRate}% of income</strong> (${fmtAUD(actualSaved)}/${lbl}), right on your ${targetRate}% target.`});
+  else if(savingsRate>0) insights.push({ico:'⚠️',txt:`Savings rate is <strong>${savingsRate}%</strong> vs your ${targetRate}% target — consider adjusting contributions.`});
+  // Biggest category this period
+  if(periodExp.length){
+    const cats={};periodExp.forEach(e=>{if(!cats[e.category])cats[e.category]=0;cats[e.category]+=parseFloat(e.amount)||0;});
+    const top=Object.entries(cats).sort((a,b)=>b[1]-a[1])[0];
+    const topPct=Math.round(top[1]/sp*100);
+    const lim=(d.categoryBudgets||{})[top[0]]||0;
+    if(lim&&top[1]>lim) insights.push({ico:'🔴',txt:`<strong>${top[0]}</strong> is over budget: ${fmtAUD(top[1])} spent vs ${fmtAUD(lim)} limit this ${lbl}.`});
+    else insights.push({ico:'📊',txt:`<strong>${top[0]}</strong> is your biggest expense this ${lbl} at ${fmtAUD(top[1])} (${topPct}% of spending).`});
+  }
+  // CC interest warnings
+  const dangerCCs=d.debts.filter(x=>x.subtype==='credit'&&parseFloat(x.balance)>0&&getCCStatus(x).s==='danger');
+  if(dangerCCs.length) insights.push({ico:'🚨',txt:`<strong>${dangerCCs.map(c=>c.name).join(', ')}</strong> ${dangerCCs.length===1?'is':'are'} past the interest-free period — interest accruing daily.`});
+  // NW trend
+  if(d.nwHistory?.length>=2){
+    const hist=d.nwHistory;const delta=hist[hist.length-1].netWorth-hist[hist.length-2].netWorth;
+    if(delta!==0) insights.push({ico:delta>0?'📈':'📉',txt:`Net worth ${delta>0?'grew':'fell'} by <strong>${fmtAUD(Math.abs(delta))}</strong> since last snapshot.`});
+  }
+  // Debt interest cost this period
+  const totalInterest=d.debts.reduce((s,x)=>s+calcInterestCost(x),0);
+  if(totalInterest>0&&d.debts.length) insights.push({ico:'💸',txt:`Your debts will cost approximately <strong>${fmtAUD(Math.round(totalInterest/12))}/month</strong> in interest at current rates.`});
+
+  const strip=document.getElementById('insight-strip');
+  strip.innerHTML=insights.length?`<div class="insight">${insights.slice(0,4).map(ins=>`<div class="insight-row"><div class="insight-ico">${ins.ico}</div><div class="insight-txt">${ins.txt}</div></div>`).join('')}</div>`:'';
+
+  /* ── CASHFLOW BREAKDOWN ── */
+  const cfItems=[
+    {label:'Debt repayments',sub:d.debts.length+' account'+(d.debts.length!==1?'s':''),amt:totalDebtPay,color:'#ff5c5c'},
+    {label:'Investments',sub:d.investments.length+' account'+(d.investments.length!==1?'s':''),amt:totalInvest,color:'#00d68f'},
+    {label:'Savings allocation',sub:(d.alloc.save||0)+'% of income',amt:totalSavePct,color:'#00c8d4'},
+    {label:'Expenses logged',sub:'this '+lbl,amt:sp,color:'#ffa940'},
+    {label:'Discretionary remaining',sub:cashflow>=0?'unallocated':'over budget',amt:Math.abs(cashflow),color:cashflow>=0?'#a78bfa':'#ff5c5c',italic:cashflow<0},
+  ].filter(x=>x.amt>0);
+  const cfTotal=cfItems.reduce((s,x)=>s+x.amt,0)||1;
+  document.getElementById('cashflow-body').innerHTML=`
+    <div class="cf-bar-wrap"><div class="cf-bar-inner">${cfItems.map(x=>`<div class="cf-seg" style="width:${Math.round(x.amt/cfTotal*100)}%;background:${x.color}"></div>`).join('')}</div></div>
+    <div style="height:10px"></div>
+    ${cfItems.map(x=>`<div class="cf-row"><div class="cf-dot" style="background:${x.color}"></div><div><div class="cf-label" style="${x.italic?'color:var(--t2);font-style:italic':''}">${x.label}</div><div class="cf-sub">${x.sub}</div></div><div class="cf-pct">${Math.round(x.amt/cfTotal*100)}%</div><div class="cf-amt" style="color:${x.color}">${fmtAUD(x.amt)}</div></div>`).join('')}`;
+
+  /* ── PERIOD ANALYTICS ── */
+  // Daily burn rate
+  const daysSoFar=Math.max(1,Math.round((now-pStart)/86400000));
+  const dailyBurn=sp/daysSoFar;
+  const projectedPeriod=dailyBurn*Math.round(pDays());
+  const burnPct=totalBudget>0?Math.min(100,Math.round(projectedPeriod/totalBudget*100)):0;
+  const burnColor=burnPct>100?'var(--rd)':burnPct>80?'var(--am)':'var(--gr)';
+  // DTI ratio
+  const annualIncome=inc*perY;
+  const dti=annualIncome>0?Math.round(tDebt/annualIncome*100):0;
+  const dtiColor=dti>200?'var(--rd)':dti>100?'var(--am)':'var(--gr)';
+  // Actual savings rate
+  const srColor=savingsRate>=targetRate?'var(--gr)':savingsRate>targetRate/2?'var(--am)':'var(--rd)';
+  // Interest cost per period
+  const interestPerPeriod=d.debts.reduce((s,x)=>{
+    const bal=parseFloat(x.balance)||0,rate=parseFloat(x.rate)||0;
+    return s+(bal*rate/100/perY);
+  },0);
+  document.getElementById('analytics-body').innerHTML=`<div class="an-grid">
+    <div class="an-cell">
+      <div class="an-lbl">Daily burn rate</div>
+      <div class="an-val" style="color:${burnColor}">${fmtAUD(dailyBurn)}</div>
+      <div class="an-sub">Projected: ${fmtAUD(projectedPeriod)} this ${lbl}</div>
+      <div class="burn-gauge"><div class="burn-track"><div class="burn-fill" style="width:${burnPct}%;background:${burnColor}"></div></div><div class="burn-lbl" style="color:${burnColor}">${burnPct}%</div></div>
+    </div>
+    <div class="an-cell">
+      <div class="an-lbl">Actual savings rate</div>
+      <div class="an-val" style="color:${srColor}">${savingsRate}%</div>
+      <div class="an-sub">Target: ${targetRate}% · ${fmtAUD(actualSaved)}/${lbl} going to save+invest</div>
+    </div>
+    <div class="an-cell">
+      <div class="an-lbl">Debt-to-income</div>
+      <div class="an-val" style="color:${dtiColor}">${dti}%</div>
+      <div class="an-sub">${dti<100?'Healthy (under 100%)':dti<200?'Moderate (100–200%)':'High (over 200%)'} of annual income</div>
+    </div>
+    <div class="an-cell">
+      <div class="an-lbl">Interest cost/${lbl}</div>
+      <div class="an-val" style="color:${interestPerPeriod>0?'var(--am)':'var(--gr)'}">${fmtAUD(interestPerPeriod)}</div>
+      <div class="an-sub">${fmtAUD(interestPerPeriod*perY)}/yr · ${inc>0?Math.round(interestPerPeriod/inc*100):0}% of income</div>
+    </div>
+    <div class="an-cell">
+      <div class="an-lbl">Emergency runway</div>
+      <div class="an-val" style="color:${tSav>sp*3?'var(--gr)':tSav>sp?'var(--am)':'var(--rd)'}">${sp>0?Math.round(tSav/sp*Math.round(pDays())):0} days</div>
+      <div class="an-sub">Savings covers ${sp>0?Math.round(tSav/(sp/Math.round(pDays()))/30):0} months of expenses</div>
+    </div>
+    <div class="an-cell">
+      <div class="an-lbl">Obligations ratio</div>
+      <div class="an-val" style="color:${totalObligations/Math.max(inc,1)>0.6?'var(--rd)':totalObligations/Math.max(inc,1)>0.4?'var(--am)':'var(--gr)'}">${inc>0?Math.round(totalObligations/inc*100):0}%</div>
+      <div class="an-sub">of income committed to debt, invest & savings</div>
+    </div>
+  </div>`;
+
+  /* ── DEBT FREEDOM ── */
+  const dfEl=document.getElementById('debt-freedom-body');
+  if(!d.debts.length){
+    dfEl.innerHTML='<div class="empty" style="padding:8px 0"><div class="eico">🎉</div>No debts tracked</div>';
+  } else {
+    let latestDate=null;
+    dfEl.innerHTML=d.debts.map(debt=>{
+      const po=calcPayoffMonths(debt);const ic=calcInterestCost(debt);
+      const bal=parseFloat(debt.balance)||0;
+      if(po.months>0&&bal>0){
+        const pd=new Date();pd.setMonth(pd.getMonth()+po.months);
+        if(!latestDate||pd>latestDate)latestDate=pd;
+      }
+      return`<div class="df-row">
+        <div><div class="df-name">${debt.name}</div><div class="df-meta">${fmtAUD(bal)} · ${debt.rate||0}% p.a.</div></div>
+        <div><div class="df-date" style="color:${po.months>24?'var(--am)':'var(--gr)'}">${po.dateStr||'—'}</div><div class="df-int">${ic>0?'~'+fmtAUD(ic)+' interest':'no interest'}</div></div>
+      </div>`;
+    }).join('');
+    if(latestDate){
+      const moFree=Math.round((latestDate-now)/2629800000);
+      dfEl.innerHTML+=`<div style="background:var(--grb);border:.5px solid var(--grbd);border-radius:10px;padding:11px 13px;margin-top:10px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:11px;color:var(--gr);font-weight:600;text-transform:uppercase;letter-spacing:.5px">Debt-free date</div><div style="font-size:12px;color:var(--t2);margin-top:2px">At current payments</div></div><div style="font-size:18px;font-weight:600;font-family:'DM Mono',monospace;color:var(--gr)">${latestDate.toLocaleDateString('en-AU',{month:'short',year:'numeric'})}</div></div>`;
+    }
+  }
+
+  /* ── ALLOC BAR ── */
   const al=d.alloc;
   document.getElementById('dbar').innerHTML=AK.map((k,i)=>`<div class="aseg" style="flex:${al[k]||0};background:${AC[i]}"></div>`).join('');
   document.getElementById('dleg').innerHTML=AK.map((k,i)=>`<div class="li2"><div class="ldot" style="background:${AC[i]}"></div><span>${AL[i]}</span><span class="lval">${fmtAUD(inc*(al[k]||0)/100)}</span></div>`).join('');
-  const sn=document.getElementById('dsnap');
-  if(!d.debts.length){sn.innerHTML='<div class="empty" style="padding:8px 0 0"><div class="eico">💳</div>No debts tracked</div>';}
-  else sn.innerHTML=d.debts.map(debt=>{
-    const bal=parseFloat(debt.balance)||0,orig=parseFloat(debt.origBalance)||bal,pct=orig>0?Math.min(100,Math.round((1-bal/orig)*100)):0;
-    return`<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px"><span style="font-size:13px">${debt.name}</span><span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:var(--rd)">${fmtAUD(bal)}</span></div><div class="prog"><div class="pf" style="width:${pct}%;background:var(--gr)"></div></div><div style="font-size:10px;color:var(--t3);margin-top:2px">${pct}% paid off</div></div>`;
-  }).join('');
+
   rdNWChart(d);
 }
 
@@ -1034,7 +1458,7 @@ function rdPortChart(d){
    EXPENSES
 ═══════════════════════════════════════════ */
 function rdExp(){
-  const d=D();rdAlertsBanner();
+  const d=D();rdAlertsBanner();rdIncomeSummary();
   const now=new Date(),pStart=new Date(now);pStart.setDate(now.getDate()-Math.round(pDays()));
   const rec=d.expenses.filter(e=>new Date(e.date)>=pStart).sort((a,b)=>new Date(b.date)-new Date(a.date));
   const tot=rec.reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
@@ -1231,19 +1655,139 @@ function rdRem(){
 /* ═══════════════════════════════════════════
    EXPORT / IMPORT
 ═══════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════
+   ADDITIONAL INCOME
+═══════════════════════════════════════════ */
+const INC_CAT_EMOJI={'Freelance':'💼','Side hustle':'🚀','Investment return':'📈','Rental income':'🏠','Tax return':'🏛','Gift / windfall':'🎁','Government payment':'📋','Sale':'🛍','Other income':'💰'};
+
+function rdIncomeSummary(){
+  const d=D();const el=document.getElementById('income-summary');if(!el)return;
+  const now=new Date(),pStart=new Date(now);pStart.setDate(now.getDate()-Math.round(pDays()));
+  const periodInc=(d.additionalIncome||[]).filter(i=>new Date(i.date)>=pStart).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const periodTotal=periodInc.reduce((s,i)=>s+(parseFloat(i.amount)||0),0);
+  const primaryInc=d.income||0;
+  const totalInc=primaryInc+periodTotal;
+
+  if(!periodInc.length){
+    el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0">
+      <div><div style="font-size:13px;color:var(--t2)">Primary pay (${d.cycle==='monthly'?'monthly':'fortnightly'})</div><div style="font-size:11px;color:var(--t3);margin-top:2px">Set in Pay cycle tab</div></div>
+      <div style="font-family:'DM Mono',monospace;font-size:16px;font-weight:500;color:var(--gr)">${fmtAUD(primaryInc)}</div>
+    </div>
+    <div class="empty" style="padding:16px 0 4px"><div class="eico">💰</div>No extra income logged this period.<br>Freelance, tax return, side hustle?</div>`;
+    return;
+  }
+
+  let html=`<div class="inc-summary-row"><div style="font-size:13px;color:var(--t2)">Primary pay</div><div class="inc-amt">${fmtAUD(primaryInc)}</div></div>`;
+  periodInc.forEach((inc,_)=>{
+    const idx=(d.additionalIncome||[]).indexOf(inc);
+    html+=`<div class="inc-item">
+      <div class="inc-ico">${INC_CAT_EMOJI[inc.category]||'💰'}</div>
+      <div class="inc-body"><div class="inc-name">${inc.description}</div>
+        <div class="inc-meta">${inc.category} · ${new Date(inc.date).toLocaleDateString('en-AU',{day:'numeric',month:'short'})}${inc.notes?' · '+inc.notes:''}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        <div class="inc-amt">+${fmtAUD(inc.amount)}</div>
+        <div class="acts">
+          <button class="ibt edt" onclick="editIncome(${idx})"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          <button class="ibt del" onclick="rmIncome(${idx})"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
+        </div>
+      </div>
+    </div>`;
+  });
+  html+=`<div class="inc-summary-row" style="margin-top:4px;padding-top:10px;border-top:.5px solid var(--b2)">
+    <div style="font-size:13px;font-weight:500">Total income this ${pLabel()}</div>
+    <div style="font-family:'DM Mono',monospace;font-size:16px;font-weight:600;color:var(--gr)">${fmtAUD(totalInc)}</div>
+  </div>`;
+  el.innerHTML=html;
+}
+
+function saveIncome(){
+  const d=D();const ei=document.getElementById('inc-ei').value;
+  if(!d.additionalIncome) d.additionalIncome=[];
+  const obj={description:document.getElementById('inc-desc').value||'Income',amount:parseFloat(document.getElementById('inc-amt').value)||0,category:document.getElementById('inc-cat').value,date:document.getElementById('inc-date').value||today(),notes:document.getElementById('inc-notes').value||''};
+  if(ei!=='') d.additionalIncome[+ei]=obj;
+  else d.additionalIncome.push(obj);
+  SD(d);closeSheet();rdExp();
+}
+function editIncome(i){
+  const d=D();const inc=(d.additionalIncome||[])[i];if(!inc)return;
+  document.getElementById('isht').textContent='Edit income';document.getElementById('inc-ei').value=i;
+  document.getElementById('inc-desc').value=inc.description||'';document.getElementById('inc-amt').value=inc.amount||'';
+  document.getElementById('inc-cat').value=inc.category||'Other income';document.getElementById('inc-date').value=inc.date||today();document.getElementById('inc-notes').value=inc.notes||'';
+  document.getElementById('ov').classList.add('open');document.getElementById('sh-income').classList.add('open');curSheet='income';
+}
+function rmIncome(i){const d=D();if(!d.additionalIncome)return;d.additionalIncome.splice(i,1);SD(d);rdExp();}
+
 function exportJSON(){
   const d=D();const blob=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='fintrack-backup-'+today()+'.json';a.click();URL.revokeObjectURL(url);
 }
 function exportCSV(){
-  const d=D();const rows=[['Date','Description','Category','Amount','Payment Source','Credit Card']];
-  d.expenses.forEach(e=>{const ccName=e.ccDebtIdx!=null?d.debts[e.ccDebtIdx]?.name||'':'';rows.push([e.date,e.description,e.category,e.amount,e.paymentSource||'debit',ccName]);});
-  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='fintrack-expenses-'+today()+'.csv';a.click();URL.revokeObjectURL(url);
+  const d=D();
+  const rows=[['Type','Date','Description','Category','Amount','Payment Source','Credit Card','Notes']];
+  d.expenses.forEach(e=>{const ccName=e.ccDebtIdx!=null?d.debts[e.ccDebtIdx]?.name||'':'';rows.push(['expense',e.date,e.description,e.category,e.amount,e.paymentSource||'debit',ccName,'']);});
+  (d.additionalIncome||[]).forEach(i=>rows.push(['income',i.date,i.description,i.category,i.amount,'','',i.notes||'']));
+  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}`).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='fintrack-data-'+today()+'.csv';a.click();URL.revokeObjectURL(url);
 }
 function importJSON(input){
   const file=input.files[0];if(!file)return;
   const reader=new FileReader();
-  reader.onload=e=>{try{const data=JSON.parse(e.target.result);if(data.debts&&data.expenses){SD(data);renderPage(curPage);alert('Backup restored successfully!');}}catch(err){alert('Invalid backup file.');}};
+  reader.onload=e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      if(data.debts||data.expenses){
+        // Merge additionalIncome if missing from backup
+        if(!data.additionalIncome) data.additionalIncome=[];
+        SD(data);renderPage(curPage);
+        alert('Backup restored! '+((data.expenses||[]).length)+' expenses, '+((data.additionalIncome||[]).length)+' income entries loaded.');
+      } else { alert('File does not look like a FinTrack backup.'); }
+    }catch(err){alert('Invalid JSON file: '+err.message);}
+  };
+  reader.readAsText(file);input.value='';
+}
+
+function importCSV(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const lines=e.target.result.trim().split('\n');
+      if(lines.length<2){alert('CSV appears empty.');return;}
+      const header=lines[0].replace(/"/g,'').split(',').map(h=>h.trim().toLowerCase());
+      const typeIdx=header.indexOf('type');
+      const dateIdx=header.indexOf('date');
+      const descIdx=header.indexOf('description');
+      const catIdx=header.indexOf('category');
+      const amtIdx=header.indexOf('amount');
+      const psIdx=header.indexOf('payment source');
+      const ccIdx=header.indexOf('credit card');
+      const notesIdx=header.indexOf('notes');
+      if(dateIdx<0||descIdx<0||amtIdx<0){alert('CSV missing required columns: Date, Description, Amount');return;}
+      const d=D();
+      if(!d.additionalIncome) d.additionalIncome=[];
+      let expCount=0,incCount=0,skipped=0;
+      lines.slice(1).forEach(line=>{
+        // Parse CSV line (handles quoted fields)
+        const cols=[];let cur='',inQuote=false;
+        for(let ch of line){if(ch==='"'){inQuote=!inQuote;}else if(ch===','&&!inQuote){cols.push(cur.trim());cur='';}else{cur+=ch;}}
+        cols.push(cur.trim());
+        const get=i=>i>=0&&i<cols.length?cols[i].replace(/^"|"$/g,'').trim():'';
+        const type=get(typeIdx).toLowerCase()||'expense';
+        const date=get(dateIdx);const desc=get(descIdx);const amt=parseFloat(get(amtIdx));
+        if(!date||!desc||isNaN(amt)||amt<=0){skipped++;return;}
+        if(type==='income'){
+          d.additionalIncome.push({description:desc,amount:amt,category:get(catIdx)||'Other income',date,notes:get(notesIdx)||''});
+          incCount++;
+        } else {
+          d.expenses.push({description:desc,amount:amt,category:get(catIdx)||'Other',date,paymentSource:get(psIdx)||'debit',ccDebtIdx:null,recurring:false});
+          expCount++;
+        }
+      });
+      SD(d);renderPage(curPage);
+      alert('CSV imported: '+expCount+' expenses, '+incCount+' income entries added.'+(skipped?' '+skipped+' rows skipped (missing data).':''));
+    }catch(err){alert('Could not parse CSV: '+err.message);}
+  };
   reader.readAsText(file);input.value='';
 }
 
@@ -1260,6 +1804,7 @@ function openFab(){
 function openSheet(t){
   curSheet=t;document.getElementById('ov').classList.add('open');document.getElementById('sh-'+t).classList.add('open');
   if(t==='expense'){document.getElementById('edate').value=today();document.getElementById('e-ei').value='';document.getElementById('esht').textContent='Log expense';psVal='debit';document.querySelectorAll('.ps-to').forEach((o,i)=>o.classList.toggle('active',i===0));document.getElementById('cc-sel-wrap').style.display='none';populateCCSel('cc-sel');}
+  if(t==='income'){document.getElementById('inc-date').value=today();document.getElementById('inc-ei').value='';document.getElementById('isht').textContent='Add income';['inc-desc','inc-amt','inc-notes'].forEach(id=>document.getElementById(id).value='');document.getElementById('inc-cat').value='Freelance';}
   if(t==='debt'){document.getElementById('d-ei').value='';document.getElementById('dsht').textContent='Add debt';resetDSheet();}
   if(t==='goal'){document.getElementById('g-ei').value='';document.getElementById('gsht').textContent='Add savings goal';['gn','gt','gcur','gdate','gnotes'].forEach(id=>document.getElementById(id).value='');document.getElementById('gbucket').value='separate';document.getElementById('g-hint').textContent='';}
   if(t==='recurring'){document.getElementById('r-ei').value='';document.getElementById('rsht').textContent='Add recurring expense';document.getElementById('rnext').value=today();rpsVal='debit';document.querySelectorAll('#sh-recurring .ps-to').forEach((o,i)=>o.classList.toggle('active',i===0));document.getElementById('rcc-sel-wrap').style.display='none';populateCCSel('rcc-sel');}
@@ -1386,10 +1931,181 @@ function updGoal(i){const d=D();const v=parseFloat(document.getElementById('g'+i
 /* ═══════════════════════════════════════════
    INIT
 ═══════════════════════════════════════════ */
-processRecurring();
-rdDash();updateHdr('dashboard');
-const dInit=D();document.querySelectorAll('.cyc-to').forEach(o=>o.classList.toggle('active',o.dataset.v===dInit.cycle));
-if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+/* ═══════════════════════════════════════════
+   AUTH UI LOGIC
+═══════════════════════════════════════════ */
+let _authTab = 'signin';
+
+function switchAuthTab(tab){
+  _authTab = tab;
+  const isSignup = tab === 'signup';
+  document.getElementById('tab-signin').style.cssText = isSignup
+    ? 'flex:1;padding:10px;text-align:center;font-size:14px;font-weight:500;border-radius:9px;cursor:pointer;color:#666'
+    : 'flex:1;padding:10px;text-align:center;font-size:14px;font-weight:500;border-radius:9px;cursor:pointer;background:#141414;color:#efefef;box-shadow:0 1px 3px rgba(0,0,0,.4)';
+  document.getElementById('tab-signup').style.cssText = isSignup
+    ? 'flex:1;padding:10px;text-align:center;font-size:14px;font-weight:500;border-radius:9px;cursor:pointer;background:#141414;color:#efefef;box-shadow:0 1px 3px rgba(0,0,0,.4)'
+    : 'flex:1;padding:10px;text-align:center;font-size:14px;font-weight:500;border-radius:9px;cursor:pointer;color:#666';
+  document.getElementById('name-wrap').style.display = isSignup ? 'block' : 'none';
+  document.getElementById('forgot-wrap').style.display = isSignup ? 'none' : 'block';
+  document.getElementById('auth-btn').textContent = isSignup ? 'Create account' : 'Sign in';
+  document.getElementById('auth-error').style.display = 'none';
+}
+
+function setAuthLoading(msg, progress){
+  document.getElementById('auth-btn').style.display = 'none';
+  document.getElementById('auth-loading').style.display = 'block';
+  document.getElementById('auth-loading-msg').textContent = msg;
+  if(progress !== undefined)
+    document.getElementById('auth-progress').style.width = progress + '%';
+}
+
+function setAuthError(msg){
+  document.getElementById('auth-btn').style.display = 'block';
+  document.getElementById('auth-loading').style.display = 'none';
+  const el = document.getElementById('auth-error');
+  el.style.display = 'block';
+  el.textContent = msg;
+}
+
+async function handleAuth(){
+  const email = document.getElementById('auth-email').value.trim();
+  const pw    = document.getElementById('auth-pw').value;
+  const name  = document.getElementById('auth-name').value.trim();
+  document.getElementById('auth-error').style.display = 'none';
+
+  if(!email || !pw){ setAuthError('Please enter your email and password.'); return; }
+  if(_authTab === 'signup' && pw.length < 6){ setAuthError('Password must be at least 6 characters.'); return; }
+
+  if(_authTab === 'signup'){
+    setAuthLoading('Creating your account…', 30);
+    const {data, error} = await supa.auth.signUp({
+      email, password: pw,
+      options: { data: { display_name: name || email.split('@')[0] } }
+    });
+    if(error){ setAuthError(error.message); return; }
+    if(data.user && !data.session){
+      // Email confirmation required
+      document.getElementById('auth-loading').style.display = 'none';
+      document.getElementById('auth-btn').style.display = 'block';
+      document.getElementById('auth-error').style.cssText = 'display:block;background:rgba(0,214,143,.1);border:.5px solid rgba(0,214,143,.22);border-radius:10px;padding:10px 13px;font-size:13px;color:#00d68f;margin-bottom:16px';
+      document.getElementById('auth-error').textContent = '✓ Check your email to confirm your account, then sign in.';
+      switchAuthTab('signin');
+      return;
+    }
+    await onSignedIn(data.user);
+  } else {
+    setAuthLoading('Signing in…', 30);
+    const {data, error} = await supa.auth.signInWithPassword({email, password: pw});
+    if(error){ setAuthError(error.message === 'Invalid login credentials' ? 'Incorrect email or password.' : error.message); return; }
+    await onSignedIn(data.user);
+  }
+}
+
+async function handleForgotPassword(){
+  const email = document.getElementById('auth-email').value.trim();
+  if(!email){ setAuthError('Enter your email address first.'); return; }
+  const {error} = await supa.auth.resetPasswordForEmail(email);
+  if(error){ setAuthError(error.message); return; }
+  document.getElementById('auth-error').style.cssText = 'display:block;background:rgba(0,214,143,.1);border:.5px solid rgba(0,214,143,.22);border-radius:10px;padding:10px 13px;font-size:13px;color:#00d68f;margin-bottom:16px';
+  document.getElementById('auth-error').textContent = '✓ Password reset email sent. Check your inbox.';
+}
+
+async function onSignedIn(user){
+  _currentUser = user;
+  setAuthLoading('Loading your data…', 60);
+  await loadFromCloud();
+  setAuthLoading('Setting up…', 90);
+  // Small delay so progress bar feels smooth
+  await new Promise(r => setTimeout(r, 300));
+  // Boot the app
+  processRecurring();
+  const dInit = D();
+  document.querySelectorAll('.cyc-to').forEach(o=>o.classList.toggle('active',o.dataset.v===dInit.cycle));
+  rdDash(); updateHdr('dashboard');
+  // Add user avatar/signout to header
+  addUserMenu(user);
+  // Hide login screen
+  document.getElementById('login-screen').style.opacity = '0';
+  document.getElementById('login-screen').style.transition = 'opacity .4s';
+  setTimeout(()=>{ document.getElementById('login-screen').style.display = 'none'; }, 400);
+}
+
+function addUserMenu(user){
+  const name = user.user_metadata?.display_name || user.email?.split('@')[0] || 'You';
+  const initials = name.slice(0,2).toUpperCase();
+  const hdr = document.querySelector('.hdr');
+  if(!hdr) return;
+  // Insert avatar button into header
+  const avatar = document.createElement('div');
+  avatar.id = 'user-avatar';
+  avatar.style.cssText = 'width:30px;height:30px;border-radius:50%;background:rgba(0,214,143,.15);border:.5px solid rgba(0,214,143,.3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#00d68f;cursor:pointer;flex-shrink:0';
+  avatar.textContent = initials;
+  avatar.title = 'Signed in as ' + user.email;
+  avatar.onclick = showUserMenu;
+  hdr.appendChild(avatar);
+}
+
+function showUserMenu(){
+  const user = _currentUser;
+  if(!user) return;
+  const name = user.user_metadata?.display_name || user.email?.split('@')[0] || 'You';
+  if(confirm('Signed in as ' + user.email + '\n\nSign out?')){
+    handleSignOut();
+  }
+}
+
+async function handleSignOut(){
+  await supa.auth.signOut();
+  _currentUser = null;
+  // Remove avatar
+  const av = document.getElementById('user-avatar');
+  if(av) av.remove();
+  // Show login screen again
+  const ls = document.getElementById('login-screen');
+  ls.style.display = 'flex';
+  ls.style.opacity = '1';
+  ls.style.transition = '';
+  document.getElementById('auth-btn').style.display = 'block';
+  document.getElementById('auth-loading').style.display = 'none';
+  document.getElementById('auth-error').style.display = 'none';
+  document.getElementById('auth-email').value = '';
+  document.getElementById('auth-pw').value = '';
+  showSyncBadge('hide');
+}
+
+/* ═══════════════════════════════════════════
+   INIT — check for existing session first
+═══════════════════════════════════════════ */
+(async function init(){
+  // Allow Enter key on auth inputs
+  ['auth-email','auth-pw','auth-name'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.addEventListener('keydown', e=>{ if(e.key==='Enter') handleAuth(); });
+  });
+
+  // Check for existing Supabase session (persists across refreshes)
+  const {data: {session}} = await supa.auth.getSession();
+  if(session?.user){
+    // Already logged in — boot straight into app
+    await onSignedIn(session.user);
+  }
+  // else: login screen stays visible (already shown by default)
+
+  // Listen for auth state changes (token refresh, sign out from another tab)
+  supa.auth.onAuthStateChange(async (event, session)=>{
+    if(event === 'SIGNED_IN' && session?.user && !_currentUser){
+      await onSignedIn(session.user);
+    }
+    if(event === 'SIGNED_OUT'){
+      _currentUser = null;
+    }
+    if(event === 'TOKEN_REFRESHED'){
+      // silently keep session alive — no action needed
+    }
+  });
+
+  if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+})();
 </script>
 </body>
 </html>
